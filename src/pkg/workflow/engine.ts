@@ -192,7 +192,9 @@ export class WorkflowEngine {
       const event = data
       updateWorkflowStatus(this.sessionId, event.payload.newState).catch(console.error)
 
-      if (event.payload.newState !== this.stateMachine.getState()) {
+      // Trigger run() when entering states that require active processing
+      const newState = event.payload.newState
+      if (newState === WorkflowState.PLANNING || newState === WorkflowState.THINKING) {
         this.run()
       }
     })
@@ -256,7 +258,7 @@ export class WorkflowEngine {
       metadata: { todoList: object.plan }
     })
 
-    this.stateMachine.transition('NEED_APPROVAL')
+    this.stateMachine.transition('PLAN_READY')
   }
 
   /**
