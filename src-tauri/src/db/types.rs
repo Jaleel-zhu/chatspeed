@@ -38,11 +38,24 @@ pub struct Conversation {
 // =================================================
 // ccproxy stats
 // =================================================
+
+/// Statistics record for ccproxy requests.
+///
+/// Field naming convention:
+/// - `client_model`: The proxy alias configured by the user (e.g., "code-small").
+///   This represents the model name/alias that the client sees and uses in requests.
+/// - `backend_model`: The actual model ID used by the backend provider (e.g., "Qwen/Qwen3-Next-80B-A3B-Instruct").
+///   This is the real model name that gets sent to the AI provider's API.
+///
+/// Note: When using internal headers (X-CS-Provider-Id/X-CS-Model-Id) to directly specify
+/// a model, `client_model` will be set to the model_id since no user-configured alias exists.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CcproxyStat {
     pub id: Option<i64>,
+    /// User-configured proxy alias (e.g., "code-small") or model_id for direct header requests
     pub client_model: String,
+    /// Actual backend model ID (e.g., "Qwen/Qwen3-Next-80B-A3B-Instruct")
     pub backend_model: String,
     pub provider: String,
     pub protocol: String,

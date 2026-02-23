@@ -633,6 +633,16 @@ impl ModelResolver {
             })
     }
 
+    /// Retrieves a ProxyModel by provider_id and model_id.
+    ///
+    /// # Note on client_alias
+    /// When using this method (typically via X-CS-Provider-Id/X-CS-Model-Id headers),
+    /// the `client_alias` field is set to the `model_id` because no alias lookup is performed.
+    /// This is intentional behavior for internal/direct API requests where the actual
+    /// user-configured proxy alias is unknown.
+    ///
+    /// For user-facing statistics, this means `client_model` in the database will show
+    /// the backend model ID rather than a user-friendly alias.
     pub async fn get_ai_model_by_provider_and_model(
         main_store_arc: Arc<std::sync::RwLock<MainStore>>,
         provider_id: i64,

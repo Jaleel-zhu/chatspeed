@@ -63,11 +63,21 @@ impl fmt::Debug for StreamFormat {
     }
 }
 
+/// Proxy model configuration resolved from alias or direct model specification.
+///
+/// # Field Semantics
+/// - `client_alias`: The identifier seen by clients. When resolved via alias lookup,
+///   this is the user-configured proxy alias (e.g., "code-small"). When resolved via
+///   direct provider/model ID headers, this equals `model` since no alias exists.
+/// - `model`: The actual backend model ID sent to the provider's API
+///   (e.g., "Qwen/Qwen3-Next-80B-A3B-Instruct").
 pub struct ProxyModel {
+    /// User-facing alias (from alias lookup) or model_id (from direct header specification)
     pub client_alias: String,
     pub provider: String,
     pub chat_protocol: ChatProtocol,
     pub base_url: String,
+    /// Actual backend model ID used for API requests
     pub model: String,
     pub api_key: String,
     pub model_metadata: Option<Value>,

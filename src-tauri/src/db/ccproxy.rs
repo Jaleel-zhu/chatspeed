@@ -3,6 +3,18 @@ use rusqlite::params;
 
 impl MainStore {
     /// Records a new proxy statistic entry in the database.
+    ///
+    /// # Field Mapping
+    /// - `client_model`: Should be the user-configured proxy alias (e.g., "code-small").
+    ///   For internal direct requests using X-CS-Provider-Id/X-CS-Model-Id headers,
+    ///   this will be the model_id since no alias lookup is performed.
+    /// - `backend_model`: The actual model ID sent to the provider's API
+    ///   (e.g., "Qwen/Qwen3-Next-80B-A3B-Instruct").
+    ///
+    /// # Consistency Note
+    /// All handlers should use `proxy_model.client_alias` for `client_model` and
+    /// `proxy_model.model` for `backend_model` to ensure consistent statistics.
+    /// See `CcproxyStat` struct documentation for details.
     pub fn record_ccproxy_stat(&self, stat: CcproxyStat) -> Result<i64, StoreError> {
         let conn = self
             .conn
