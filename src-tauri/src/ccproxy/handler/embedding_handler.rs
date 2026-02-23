@@ -20,10 +20,13 @@ use crate::ccproxy::{
     },
     errors::CCProxyError,
     gemini::GeminiEmbedRequest,
-    helper::{get_provider_embedding_full_url, CcproxyQuery, ModelResolver},
+    helper::{
+        get_provider_embedding_full_url, send_with_retry, CcproxyQuery, ModelResolver, RetryConfig,
+    },
     openai::OpenAIEmbeddingRequest,
     types::ollama::{OllamaEmbedRequest, OllamaEmbeddingsRequest},
 };
+use crate::constants::{CFG_CCPROXY_RETRY_ON_429, CFG_CCPROXY_RETRY_ON_429_DEFAULT};
 use crate::db::{CcproxyStat, MainStore};
 
 fn get_proxy_alias_from_body(
@@ -164,10 +167,16 @@ pub async fn handle_embedding(
         request_builder = request_builder.header(key, value);
     }
 
-    let response = request_builder
-        .send()
-        .await
-        .map_err(|e| CCProxyError::InternalError(format!("Request to backend failed: {}", e)))?;
+    // Get retry configuration from settings
+    let max_retries = if let Ok(store) = store_arc.read() {
+        store.get_config(CFG_CCPROXY_RETRY_ON_429, CFG_CCPROXY_RETRY_ON_429_DEFAULT)
+    } else {
+        CFG_CCPROXY_RETRY_ON_429_DEFAULT
+    };
+    let retry_config = RetryConfig::from_settings(max_retries);
+
+    // Send request with retry support for 429 status code
+    let response = send_with_retry(request_builder, &retry_config).await?;
 
     let status_code = response.status();
     if !status_code.is_success() {
@@ -206,24 +215,24 @@ pub async fn handle_embedding(
         .adapt_embedding_response(unified_response)
         .map_err(|e| CCProxyError::InternalError(e.to_string()))?;
 
-        // Record stats
-        if let Ok(store) = store_arc.read() {
-            let _ = store.record_ccproxy_stat(CcproxyStat {
-                id: None,
-                client_model: proxy_alias,
-                backend_model: proxy_model.model.clone(),
-                provider: proxy_model.provider.clone(),
-                protocol: chat_protocol.to_string(),
-                tool_compat_mode: 0,
-                status_code: status_code.as_u16() as i32,
-                error_message: None,
-                input_tokens: 0, 
-                output_tokens: 0,
-                cache_tokens: 0,
-                request_at: Some(chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string()),
-            });
-        } else {
-            log::error!("Failed to acquire store lock for recording ccproxy stats");
-        }
-        Ok(final_response)
+    // Record stats
+    if let Ok(store) = store_arc.read() {
+        let _ = store.record_ccproxy_stat(CcproxyStat {
+            id: None,
+            client_model: proxy_alias,
+            backend_model: proxy_model.model.clone(),
+            provider: proxy_model.provider.clone(),
+            protocol: chat_protocol.to_string(),
+            tool_compat_mode: 0,
+            status_code: status_code.as_u16() as i32,
+            error_message: None,
+            input_tokens: 0,
+            output_tokens: 0,
+            cache_tokens: 0,
+            request_at: Some(chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string()),
+        });
+    } else {
+        log::error!("Failed to acquire store lock for recording ccproxy stats");
+    }
+    Ok(final_response)
 }

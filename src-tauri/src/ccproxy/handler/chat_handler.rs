@@ -5,7 +5,7 @@ use rust_i18n::t;
 use serde_json::{json, Value};
 use std::sync::{Arc, RwLock};
 
-use crate::ccproxy::helper::get_msg_id;
+use crate::ccproxy::helper::{get_msg_id, send_with_retry, RetryConfig};
 use crate::ccproxy::ChatProtocol;
 use crate::ccproxy::{
     adapter::{
@@ -27,7 +27,10 @@ use crate::ccproxy::{
     openai::OpenAIChatCompletionRequest,
     types::ollama::OllamaChatCompletionRequest,
 };
-use crate::constants::{CFG_CCPROXY_LOG_PROXY_TO_FILE, CFG_CCPROXY_LOG_TO_FILE};
+use crate::constants::{
+    CFG_CCPROXY_LOG_PROXY_TO_FILE, CFG_CCPROXY_LOG_TO_FILE, CFG_CCPROXY_RETRY_ON_429,
+    CFG_CCPROXY_RETRY_ON_429_DEFAULT,
+};
 use crate::db::{CcproxyStat, MainStore};
 
 fn get_proxy_alias_from_body(
@@ -429,10 +432,16 @@ pub async fn handle_chat_completion(
     // Apply consolidated headers to the request builder
     onward_request_builder = onward_request_builder.headers(final_headers);
 
-    let target_response = onward_request_builder
-        .send()
-        .await
-        .map_err(|e| CCProxyError::InternalError(format!("Request to backend failed: {}", e)))?;
+    // Get retry configuration from settings
+    let max_retries = if let Ok(store) = main_store_arc.read() {
+        store.get_config(CFG_CCPROXY_RETRY_ON_429, CFG_CCPROXY_RETRY_ON_429_DEFAULT)
+    } else {
+        CFG_CCPROXY_RETRY_ON_429_DEFAULT
+    };
+    let retry_config = RetryConfig::from_settings(max_retries);
+
+    // Send request with retry support for 429 status code
+    let target_response = send_with_retry(onward_request_builder, &retry_config).await?;
 
     // Handle error response
     if !target_response.status().is_success() {

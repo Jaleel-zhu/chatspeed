@@ -394,7 +394,7 @@ impl ModelResolver {
             Self::get_ai_model_details(main_store_arc.clone(), global_key.provider_id)?;
 
         log::info!(
-            "chat_completion_proxy: alias={}, provider={}, base_url={}, protocol={}, selected={}",
+            "ccproxy: alias={}, provider={}, base_url={}, protocol={}, selected={}",
             &matched_alias_key,
             &ai_model_details.name,
             &ai_model_details.base_url,
@@ -541,7 +541,8 @@ impl ModelResolver {
                 // Use a dedicated counter for rotating models within this provider to ensure
                 // that even if keys < models, all models are eventually used without inflating the key's weight.
                 let model_rot_key = format!("{}:{}:model_rot", composite_key, provider_id);
-                let model_rot = CC_PROXY_ROTATOR.get_next_target_index(&model_rot_key, models.len());
+                let model_rot =
+                    CC_PROXY_ROTATOR.get_next_target_index(&model_rot_key, models.len());
 
                 // Each unique key is added exactly ONCE to the global pool.
                 for (key_idx, key) in keys.into_iter().enumerate() {

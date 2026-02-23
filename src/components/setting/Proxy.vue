@@ -248,6 +248,21 @@
                   @change="saveProxySettings('chatCompletionProxyLogProxyToFile')" />
               </div>
             </div>
+            <div class="item">
+              <div class="label">
+                <div class="label-text">
+                  {{ $t('settings.proxy.settings.retryOn429') }}
+                  <small>{{ $t('settings.proxy.settings.retryOn429Tip') }}</small>
+                </div>
+              </div>
+              <div class="value">
+                <el-input-number
+                  v-model="settings.chatCompletionProxyRetryOn429"
+                  :min="0"
+                  :max="10"
+                  @change="saveProxySettings('chatCompletionProxyRetryOn429')" />
+              </div>
+            </div>
           </div>
         </div>
       </el-tab-pane>

@@ -94,6 +94,7 @@ const defaultSettings = {
   chatCompletionProxyListen: '127.0.0.1',
   chatCompletionProxyLogToFile: false,
   chatCompletionProxyLogProxyToFile: false,
+  chatCompletionProxyRetryOn429: 0,
   // Search
   googleApiKey: '',
   googleSearchId: '',

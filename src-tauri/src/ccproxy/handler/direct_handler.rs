@@ -1,5 +1,5 @@
 use crate::ccproxy::adapter::unified::{SseStatus, StreamLogRecorder, UnifiedFunctionCallPart};
-use crate::ccproxy::helper::get_tool_id;
+use crate::ccproxy::helper::{get_tool_id, send_with_retry, RetryConfig};
 use crate::ccproxy::utils::token_estimator::estimate_tokens;
 use crate::ccproxy::{
     errors::{CCProxyError, ProxyResult},
@@ -7,6 +7,7 @@ use crate::ccproxy::{
     types::ProxyModel,
     ChatProtocol,
 };
+use crate::constants::{CFG_CCPROXY_RETRY_ON_429, CFG_CCPROXY_RETRY_ON_429_DEFAULT};
 use crate::db::{CcproxyStat, MainStore};
 
 use axum::body::Body;
@@ -142,11 +143,16 @@ pub async fn handle_direct_forward(
         .headers(reqwest_headers)
         .body(modified_body);
 
-    // Send request
-    let target_response = onward_request_builder
-        .send()
-        .await
-        .map_err(|e| CCProxyError::InternalError(format!("Request to backend failed: {}", e)))?;
+    // Get retry configuration from settings
+    let max_retries = if let Ok(store) = main_store_arc.read() {
+        store.get_config(CFG_CCPROXY_RETRY_ON_429, CFG_CCPROXY_RETRY_ON_429_DEFAULT)
+    } else {
+        CFG_CCPROXY_RETRY_ON_429_DEFAULT
+    };
+    let retry_config = RetryConfig::from_settings(max_retries);
+
+    // Send request with retry support for 429 status code
+    let target_response = send_with_retry(onward_request_builder, &retry_config).await?;
 
     // Handle response
     let status_code = target_response.status();
@@ -169,8 +175,8 @@ pub async fn handle_direct_forward(
         *response.headers_mut() = filtered_headers;
 
         // Record error for non-streaming direct forward
+        let error_msg = String::from_utf8_lossy(&error_body_bytes).to_string();
         if let Ok(store) = main_store_arc.read() {
-            let error_msg = String::from_utf8_lossy(&error_body_bytes).to_string();
             let _ = store.record_ccproxy_stat(CcproxyStat {
                 id: None,
                 client_model: proxy_model.client_alias.clone(),
@@ -179,13 +185,27 @@ pub async fn handle_direct_forward(
                 protocol: chat_protocol_for_stat.to_string(),
                 tool_compat_mode: 0,
                 status_code: status_code.as_u16() as i32,
-                error_message: Some(error_msg),
+                error_message: Some(error_msg.clone()),
                 input_tokens: 0,
                 output_tokens: 0,
                 cache_tokens: 0,
                 request_at: None,
             });
         }
+
+        if log_to_file {
+            log::info!(target: "ccproxy_logger", "[ERROR] {} Response Error, model: {}, Status: {}, Body: \n{}\n---", proxy_model.chat_protocol.to_string(), &proxy_model.model, status_code, error_msg);
+        }
+
+        log::warn!(
+            "Backend API error (alias: '{}', model: '{}', provider: '{}'): url={}, status_code={}, response={}",
+            proxy_model.client_alias.clone(),
+            proxy_model.model,
+            proxy_model.provider,
+            &full_url,
+            status_code,
+            error_msg
+        );
 
         return Ok(response);
     }

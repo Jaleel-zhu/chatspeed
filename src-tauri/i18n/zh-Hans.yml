@@ -223,6 +223,8 @@ proxy:
     model_details_fetch_failed: "未能获取 provider_id 为 %{id} 的模型详情。"
     no_backend_targets: "模型别名 '%{alias}' 未配置后端目标。"
     no_keys_configured: "服务器未配置代理访问密钥，请联系管理员配置相关密钥"
+    retry_exceeded: "请求重试次数已用完，服务端持续返回429状态码（请求过于频繁）。请稍后重试或增加重试次数设置。"
+    retry_failed: "请求重试失败: %{error}"
     store_lock_failed: "访问存储失败: %{error}"
   group:
     not_found_by_name: "未能通过分组名称 '%{name}' 找到代理分组"

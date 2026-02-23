@@ -2,6 +2,19 @@
 
 # Release Notes
 
+## [1.2.8] - Pending Release
+
+### 🚀 New Features
+
+- **429 Exponential Backoff Retry Mechanism**: Added intelligent retry functionality to the CCProxy module to effectively handle server-side rate limiting scenarios.
+  - When the backend returns a 429 (Too Many Requests) status code, the system automatically performs exponential backoff retries.
+  - Retry attempts can be configured via the settings interface (0-10 times, default is 0 meaning no retry).
+  - Smart backoff strategy: 1 second for the 1st retry, 2 seconds for the 2nd, 4 seconds for the 3rd, and so on, up to a maximum of 32 seconds.
+  - Supports the `Retry-After` response header from the server, prioritizing the server-suggested wait time.
+  - This feature covers all proxy request paths: direct forwarding, protocol conversion, and Embedding requests.
+
+---
+
 ## [1.2.7]
 
 ### 🚀 New Features

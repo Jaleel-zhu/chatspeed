@@ -545,6 +545,8 @@
         "openLogFile": "打开日志文件",
         "port": "代理端口",
         "portChangedRestartRequired": "端口号变更后须重启应用才能生效",
+        "retryOn429": "429重试次数",
+        "retryOn429Tip": "当服务端返回429状态码时，自动进行指数退避重试的次数。设为0表示不重试。",
         "saveFailed": "代理设置保存失败: {error}",
         "saveSuccess": "代理设置保存成功",
         "title": "代理设置",
