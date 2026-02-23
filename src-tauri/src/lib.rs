@@ -182,6 +182,7 @@ pub async fn run() -> crate::error::Result<()> {
             get_ccproxy_model_usage_stats,
             get_ccproxy_model_token_usage_stats,
             get_ccproxy_error_distribution_stats,
+            get_ccproxy_provider_token_usage_stats,
             // mcp
             list_mcp_servers,
             add_mcp_server,

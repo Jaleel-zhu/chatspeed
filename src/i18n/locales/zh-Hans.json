@@ -566,12 +566,14 @@
         }
       },
       "stats": {
+        "activeModels": "活跃模型",
         "allTime": "全部",
         "autoRefresh": "自动刷新",
         "backendModel": "后端模型",
         "cacheTokens": "缓存",
         "clientModel": "模型别名",
         "count": "次数",
+        "dailyRequestsTitle": "每日请求量与错误率趋势",
         "dailyTokensTitle": "每日 Token 消耗趋势",
         "date": "日期",
         "deleteAll": "清空全部记录",
@@ -584,6 +586,7 @@
         "errorDetailTitle": "{date} 错误详情",
         "errorDistTitle": "错误状态码分布 (非 200)",
         "errorMessage": "错误信息",
+        "errorRate": "错误率",
         "errors": "错误次数",
         "inputTokens": "输入",
         "last1Day": "最近24小时",
@@ -593,6 +596,7 @@
         "last90Days": "最近 90 天",
         "modelTokenUsageTitle": "后端模型 Token 消耗分布",
         "modelUsageTitle": "后端模型使用次数分布",
+        "providerTokenUsageTitle": "供应商 Token 消耗分布",
         "no": "否",
         "outputTokens": "输出",
         "protocol": "协议",
@@ -604,6 +608,8 @@
         "today": "今天",
         "toolCompat": "兼容模式",
         "topProvider": "热门模型",
+        "totalRequests": "总请求数",
+        "totalTokens": "总 Token 数",
         "yes": "是"
       },
       "tabs": {

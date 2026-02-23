@@ -222,6 +222,56 @@ impl MainStore {
         Ok(stats)
     }
 
+    /// Aggregates provider token usage for a specific day range.
+    pub fn get_ccproxy_provider_token_usage_stats(
+        &self,
+        days: i32,
+    ) -> Result<Vec<serde_json::Value>, StoreError> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| StoreError::LockError(e.to_string()))?;
+
+        let (sql, params) = if days == -1 {
+            (
+                "SELECT COALESCE(provider, '-') as provider, SUM(input_tokens + output_tokens) as total_tokens
+                 FROM ccproxy_stats
+                 GROUP BY provider
+                 ORDER BY total_tokens DESC"
+                    .to_string(),
+                params![],
+            )
+        } else {
+            (
+                "SELECT COALESCE(provider, '-') as provider, SUM(input_tokens + output_tokens) as total_tokens
+                 FROM ccproxy_stats
+                 WHERE DATE(request_at, 'localtime') >= DATE('now', 'localtime', '-' || ?1 || ' days')
+                 GROUP BY provider
+                 ORDER BY total_tokens DESC".to_string(),
+                params![days]
+            )
+        };
+
+        let mut stmt = conn
+            .prepare(&sql)
+            .map_err(|e| StoreError::Query(e.to_string()))?;
+
+        let rows = stmt
+            .query_map(params, |row| {
+                Ok(serde_json::json!({
+                    "type": row.get::<_, String>(0)?,
+                    "value": row.get::<_, i64>(1).unwrap_or(0),
+                }))
+            })
+            .map_err(|e| StoreError::Query(e.to_string()))?;
+
+        let mut stats = Vec::new();
+        for row in rows {
+            stats.push(row.map_err(|e| StoreError::Query(e.to_string()))?);
+        }
+        Ok(stats)
+    }
+
     /// Aggregates error code distribution for a specific day range.
     pub fn get_ccproxy_error_distribution_stats(
         &self,

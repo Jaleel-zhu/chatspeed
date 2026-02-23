@@ -28,12 +28,62 @@
               <el-dropdown-item :command="30">{{ $t('settings.proxy.stats.deleteOlderThan30Days') }}</el-dropdown-item>
               <el-dropdown-item :command="90">{{ $t('settings.proxy.stats.deleteOlderThan90Days') }}</el-dropdown-item>
               <el-dropdown-item :command="365">{{ $t('settings.proxy.stats.deleteOlderThan365Days')
-              }}</el-dropdown-item>
+                }}</el-dropdown-item>
               <el-dropdown-item :command="-1" divided style="color: var(--el-color-danger)">{{
                 $t('settings.proxy.stats.deleteAll') }}</el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>
+      </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="kpi-cards">
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background-color: rgba(64, 158, 255, 0.1); color: #409eff">
+          <el-icon>
+            <DataLine />
+          </el-icon>
+        </div>
+        <div class="kpi-content">
+          <div class="kpi-value">{{ formatNumber(kpiData.totalRequests) }}</div>
+          <div class="kpi-label">{{ $t('settings.proxy.stats.totalRequests') }}</div>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background-color: rgba(103, 194, 58, 0.1); color: #67c23a">
+          <el-icon>
+            <Coin />
+          </el-icon>
+        </div>
+        <div class="kpi-content">
+          <div class="kpi-value">{{ formatTokens(kpiData.totalTokens) }}</div>
+          <div class="kpi-label">{{ $t('settings.proxy.stats.totalTokens') }}</div>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background-color: rgba(245, 108, 108, 0.1); color: #f56c6c">
+          <el-icon>
+            <Warning />
+          </el-icon>
+        </div>
+        <div class="kpi-content">
+          <div class="kpi-value" :class="{ 'text-danger': kpiData.errorRate > 5 }">
+            {{ kpiData.errorRate.toFixed(2) }}%
+          </div>
+          <div class="kpi-label">{{ $t('settings.proxy.stats.errorRate') }}</div>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background-color: rgba(230, 162, 60, 0.1); color: #e6a23c">
+          <el-icon>
+            <Collection />
+          </el-icon>
+        </div>
+        <div class="kpi-content">
+          <div class="kpi-value">{{ kpiData.activeModels }}</div>
+          <div class="kpi-label">{{ $t('settings.proxy.stats.activeModels') }}</div>
+        </div>
       </div>
     </div>
 
@@ -51,7 +101,7 @@
                 <template #default="scope">
                   <span style="color: var(--cs-color-primary); font-weight: bold">{{
                     scope.row.clientModel
-                  }}</span>
+                    }}</span>
                 </template>
               </el-table-column>
               <el-table-column prop="backendModel" :label="$t('settings.proxy.stats.backendModel')" min-width="200"
@@ -84,7 +134,7 @@
                 sort-by="totalOutputTokens">
                 <template #default="scope">{{
                   formatTokens(scope.row.totalOutputTokens)
-                }}</template>
+                  }}</template>
               </el-table-column>
               <el-table-column :label="$t('settings.proxy.stats.cacheTokens')" width="90" sortable
                 sort-by="totalCacheTokens">
@@ -121,27 +171,37 @@
     </el-table>
 
     <div class="charts-section">
-      <!-- 1. Trend chart (full width) -->
+      <!-- 1. Trend charts in Tabs (Token first) -->
       <div class="charts-row">
-        <div class="chart-card bar-chart">
-          <h4>{{ $t('settings.proxy.stats.dailyTokensTitle') }}</h4>
-          <div id="daily-tokens-column"></div>
+        <div class="chart-card tab-chart">
+          <el-tabs v-model="activeTrendTab" type="border-card">
+            <el-tab-pane :label="$t('settings.proxy.stats.dailyTokensTitle')" name="dailyTokens">
+              <div id="daily-tokens-column" class="tab-chart-content"></div>
+            </el-tab-pane>
+            <el-tab-pane :label="$t('settings.proxy.stats.dailyRequestsTitle')" name="dailyRequests">
+              <div id="daily-requests-dual-axis" class="tab-chart-content"></div>
+            </el-tab-pane>
+          </el-tabs>
         </div>
       </div>
 
-      <!-- 2. Distribution charts (side by side) -->
+      <!-- 2. Distribution charts in Tabs -->
       <div class="charts-row">
-        <div class="chart-card pie-chart">
-          <h4>{{ $t('settings.proxy.stats.modelUsageTitle') }}</h4>
-          <div id="model-usage-pie"></div>
-        </div>
-        <div class="chart-card pie-chart">
-          <h4>{{ $t('settings.proxy.stats.modelTokenUsageTitle') }}</h4>
-          <div id="model-token-usage-pie"></div>
-        </div>
-        <div class="chart-card pie-chart">
-          <h4>{{ $t('settings.proxy.stats.errorDistTitle') }}</h4>
-          <div id="error-dist-pie"></div>
+        <div class="chart-card tab-chart">
+          <el-tabs v-model="activeDistributionTab" type="border-card">
+            <el-tab-pane :label="$t('settings.proxy.stats.modelTokenUsageTitle')" name="modelTokenUsage">
+              <div id="model-token-usage-bar" class="tab-chart-content"></div>
+            </el-tab-pane>
+            <el-tab-pane :label="$t('settings.proxy.stats.modelUsageTitle')" name="modelUsage">
+              <div id="model-usage-bar" class="tab-chart-content"></div>
+            </el-tab-pane>
+            <el-tab-pane :label="$t('settings.proxy.stats.providerTokenUsageTitle')" name="providerTokenUsage">
+              <div id="provider-token-usage-bar" class="tab-chart-content"></div>
+            </el-tab-pane>
+            <el-tab-pane :label="$t('settings.proxy.stats.errorDistTitle')" name="errorDist">
+              <div id="error-dist-bar" class="tab-chart-content"></div>
+            </el-tab-pane>
+          </el-tabs>
         </div>
       </div>
     </div>
@@ -168,9 +228,10 @@ import { ref, onMounted, onUnmounted, watch, nextTick, markRaw } from 'vue'
 import { invokeWrapper } from '@/libs/tauri'
 import { useI18n } from 'vue-i18n'
 import { Refresh, Delete } from '@element-plus/icons-vue'
-import { Pie, Column } from '@antv/g2plot'
+import { Column, Bar, DualAxes } from '@antv/g2plot'
 import { showMessage } from '@/libs/util'
 import { ElMessageBox } from 'element-plus'
+import { DataLine, Coin, Warning, Collection } from '@element-plus/icons-vue'
 
 const { t } = useI18n()
 
@@ -190,11 +251,27 @@ const errorLoading = ref(false)
 const errorStats = ref([])
 const selectedErrorDate = ref('')
 
+// KPI data
+const kpiData = ref({
+  totalRequests: 0,
+  totalTokens: 0,
+  errorRate: 0,
+  activeModels: 0
+})
+
+// Active tab for trend charts (Token first)
+const activeTrendTab = ref('dailyTokens')
+
+// Active tab for distribution charts
+const activeDistributionTab = ref('modelTokenUsage')
+
 // Chart instances
-let modelPieChart = null
-let modelTokenPieChart = null
-let errorPieChart = null
+let modelBarChart = null
+let modelTokenBarChart = null
+let providerTokenBarChart = null
+let errorBarChart = null
 let tokenBarChart = null
+let requestsDualAxisChart = null
 let refreshTimer = null
 
 const startRefreshTimer = () => {
@@ -220,7 +297,100 @@ const formatTokens = val => {
   return num.toLocaleString()
 }
 
+const formatNumber = val => {
+  if (val === undefined || val === null || isNaN(val)) return '0'
+  const num = Number(val)
+  if (num >= 100000000) {
+    return (num / 100000000).toFixed(2) + ' 亿'
+  }
+  if (num >= 10000) {
+    return (num / 10000).toFixed(2) + ' 万'
+  }
+  return num.toLocaleString()
+}
 
+// Format axis value (for chart axis labels)
+const formatAxisValue = val => {
+  if (val === undefined || val === null || isNaN(val)) return '0'
+  const num = Number(val)
+  if (num >= 100000000) {
+    return (num / 100000000).toFixed(1) + '亿'
+  }
+  if (num >= 10000) {
+    return (num / 10000).toFixed(1) + '万'
+  }
+  return num.toString()
+}
+
+// Get theme-aware axis colors
+const getAxisColors = () => {
+  const isDark = document.documentElement.classList.contains('dark')
+  return {
+    gridStroke: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.1)',
+    lineStroke: isDark ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.2)'
+  }
+}
+
+// Get CSS variable color value
+const getCssVar = (varName) => {
+  return getComputedStyle(document.documentElement).getPropertyValue(varName).trim() || ''
+}
+
+// Common axis configuration with dashed grid and solid axis line
+const getCommonAxisConfig = () => {
+  const colors = getAxisColors()
+  return {
+    grid: {
+      line: {
+        style: {
+          lineDash: [4, 4],
+          stroke: colors.gridStroke
+        }
+      }
+    },
+    line: {
+      style: {
+        stroke: colors.lineStroke,
+        lineWidth: 1
+      }
+    }
+  }
+}
+
+// Calculate KPI data from daily stats and model usage stats
+const calculateKPI = (modelUsage = []) => {
+  if (!dailyStats.value || dailyStats.value.length === 0) {
+    kpiData.value = {
+      totalRequests: 0,
+      totalTokens: 0,
+      errorRate: 0,
+      activeModels: 0
+    }
+    return
+  }
+
+  let totalRequests = 0
+  let totalTokens = 0
+  let totalErrors = 0
+
+  dailyStats.value.forEach(day => {
+    totalRequests += Number(day.totalRequestCount || 0)
+    totalTokens += Number(day.totalInputTokens || 0) + Number(day.totalOutputTokens || 0) + Number(day.totalCacheTokens || 0)
+    totalErrors += Number(day.errorCount || 0)
+  })
+
+  const errorRate = totalRequests > 0 ? (totalErrors / totalRequests) * 100 : 0
+
+  // Count unique models from model usage stats
+  const activeModels = modelUsage.length > 0 ? modelUsage.length : 0
+
+  kpiData.value = {
+    totalRequests,
+    totalTokens,
+    errorRate,
+    activeModels
+  }
+}
 
 const getProtocolColor = (protocol) => {
   const colorMap = {
@@ -276,11 +446,126 @@ const fetchDailyStats = async (isAutoRefresh = false) => {
 
 const updateCharts = async () => {
   try {
-    const [modelUsage, modelTokenUsage, errorDist] = await Promise.all([
+    const [modelUsage, modelTokenUsage, providerTokenUsage, errorDist] = await Promise.all([
       invokeWrapper('get_ccproxy_model_usage_stats', { days: selectedDays.value }),
       invokeWrapper('get_ccproxy_model_token_usage_stats', { days: selectedDays.value }),
+      invokeWrapper('get_ccproxy_provider_token_usage_stats', { days: selectedDays.value }),
       invokeWrapper('get_ccproxy_error_distribution_stats', { days: selectedDays.value })
     ])
+
+    // Calculate KPI data with model usage stats
+    calculateKPI(modelUsage)
+
+    // Prepare data for dual-axis chart (requests + error rate)
+    const requestsData = []
+    const errorRateData = []
+    if (dailyStats.value && dailyStats.value.length > 0) {
+      dailyStats.value
+        .slice()
+        .reverse()
+        .forEach(day => {
+          const totalRequests = Number(day.totalRequestCount || 0)
+          const errorCount = Number(day.errorCount || 0)
+          const errorRate = totalRequests > 0 ? (errorCount / totalRequests) * 100 : 0
+
+          requestsData.push({
+            date: day.date,
+            value: totalRequests,
+            type: t('settings.proxy.stats.requests')
+          })
+          errorRateData.push({
+            date: day.date,
+            value: parseFloat(errorRate.toFixed(2)),
+            type: t('settings.proxy.stats.errorRate')
+          })
+        })
+    }
+
+    // Render or update dual-axis chart (requests + error rate)
+    if (!requestsDualAxisChart) {
+      const container = document.getElementById('daily-requests-dual-axis')
+      if (container) {
+        requestsDualAxisChart = markRaw(
+          new DualAxes('daily-requests-dual-axis', {
+            data: [requestsData, errorRateData],
+            xField: 'date',
+            yField: ['value', 'value'],
+            geometryOptions: [
+              {
+                geometry: 'column',
+                color: getCssVar('--cs-info-color') || '#409eff',
+                label: {
+                  position: 'middle',
+                  formatter: datum => formatNumber(datum.value)
+                }
+              },
+              {
+                geometry: 'line',
+                color: getCssVar('--cs-error-color') || '#f56c6c',
+                lineStyle: { lineWidth: 3 },
+                point: { size: 4, shape: 'circle' },
+                label: {
+                  position: 'top',
+                  formatter: datum => datum.value + '%'
+                }
+              }
+            ],
+            xAxis: {
+              ...getCommonAxisConfig()
+            },
+            yAxis: [
+              {
+                ...getCommonAxisConfig(),
+                label: {
+                  formatter: val => formatAxisValue(val)
+                }
+              },
+              {
+                label: {
+                  formatter: val => val + '%'
+                }
+              }
+            ],
+            legend: {
+              position: 'bottom',
+              itemName: {
+                formatter: (text, item) => {
+                  return item.value === 'value' && item.index === 0
+                    ? t('settings.proxy.stats.requests')
+                    : t('settings.proxy.stats.errorRate')
+                }
+              }
+            },
+            tooltip: {
+              shared: true,
+              showMarkers: true,
+              customContent: (title, items) => {
+                if (!items || items.length === 0) return ''
+                let html = `<div style="padding: 8px 12px;"><div style="font-weight: 500; margin-bottom: 8px;">${title}</div>`
+                items.forEach((item, index) => {
+                  const color = item.color || '#999'
+                  // DualAxes chart: index 0 is requests (column), index 1 is error rate (line)
+                  const name = index === 0 ? t('settings.proxy.stats.requests') : t('settings.proxy.stats.errorRate')
+                  const value = item.value !== undefined ? item.value : ''
+                  const suffix = index === 1 ? '%' : ''
+                  const displayValue = suffix ? value + suffix : formatNumber(value)
+                  html += `<div style="display: flex; align-items: center; margin-bottom: 4px;">
+                    <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: ${color}; margin-right: 8px;"></span>
+                    <span style="flex: 1;">${name}:</span>
+                    <span style="font-weight: 500; margin-left: 12px;">${displayValue}</span>
+                  </div>`
+                })
+                html += '</div>'
+                return html
+              }
+            }
+          })
+        )
+        requestsDualAxisChart.render()
+      }
+    } else {
+      requestsDualAxisChart.update({ data: [requestsData, errorRateData] })
+    }
 
     // Prepare token data for stacked bar chart
     const tokenData = []
@@ -318,6 +603,15 @@ const updateCharts = async () => {
             xField: 'date',
             yField: 'value',
             seriesField: 'type',
+            xAxis: {
+              ...getCommonAxisConfig()
+            },
+            yAxis: {
+              ...getCommonAxisConfig(),
+              label: {
+                formatter: val => formatAxisValue(val)
+              }
+            },
             legend: {
               position: 'bottom'
             },
@@ -340,41 +634,80 @@ const updateCharts = async () => {
       tokenBarChart.render()
     }
 
-    // Render or update model usage pie chart
-    if (!modelPieChart) {
-      const container = document.getElementById('model-usage-pie')
+    // Sort model usage data by value descending for horizontal bar chart
+    const sortedModelUsage = (modelUsage || [])
+      .map(item => ({ ...item, value: Number(item.value) }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10) // Top 10
+
+    // Render or update model usage horizontal bar chart
+    if (!modelBarChart) {
+      const container = document.getElementById('model-usage-bar')
       if (container) {
-        modelPieChart = markRaw(
-          new Pie('model-usage-pie', {
-            appendPadding: 10,
-            data: modelUsage || [],
-            angleField: 'value',
-            colorField: 'type',
-            radius: 0.8,
-            label: { type: 'outer', content: '{name}: {percentage}' },
-            interactions: [{ type: 'element-active' }]
+        modelBarChart = markRaw(
+          new Bar('model-usage-bar', {
+            data: sortedModelUsage,
+            xField: 'value',
+            yField: 'type',
+            seriesField: 'type',
+            legend: false,
+            xAxis: {
+              ...getCommonAxisConfig(),
+              label: {
+                formatter: val => formatAxisValue(val)
+              }
+            },
+            yAxis: {
+              ...getCommonAxisConfig()
+            },
+            label: {
+              position: 'right',
+              formatter: datum => formatNumber(datum.value)
+            },
+            tooltip: {
+              formatter: datum => {
+                return { name: datum.type, value: formatNumber(datum.value) }
+              }
+            }
           })
         )
-        modelPieChart.render()
+        modelBarChart.render()
       }
     } else {
-      modelPieChart.changeData(modelUsage || [])
-      modelPieChart.render()
+      modelBarChart.changeData(sortedModelUsage)
+      modelBarChart.render()
     }
 
-    // Render or update model token usage pie chart
-    if (!modelTokenPieChart) {
-      const container = document.getElementById('model-token-usage-pie')
+    // Sort model token usage data by value descending
+    const sortedModelTokenUsage = (modelTokenUsage || [])
+      .map(item => ({ ...item, value: Number(item.value) }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10) // Top 10
+
+    // Render or update model token usage horizontal bar chart
+    if (!modelTokenBarChart) {
+      const container = document.getElementById('model-token-usage-bar')
       if (container) {
-        modelTokenPieChart = markRaw(
-          new Pie('model-token-usage-pie', {
-            appendPadding: 10,
-            data: modelTokenUsage || [],
-            angleField: 'value',
-            colorField: 'type',
-            radius: 0.8,
-            label: { type: 'outer', content: '{name}: {percentage}' },
-            interactions: [{ type: 'element-active' }],
+        modelTokenBarChart = markRaw(
+          new Bar('model-token-usage-bar', {
+            data: sortedModelTokenUsage,
+            xField: 'value',
+            yField: 'type',
+            seriesField: 'type',
+            legend: false,
+            xAxis: {
+              ...getCommonAxisConfig(),
+              label: {
+                formatter: val => formatAxisValue(val)
+              }
+            },
+            yAxis: {
+              ...getCommonAxisConfig()
+            },
+            label: {
+              position: 'right',
+              formatter: datum => formatTokens(datum.value)
+            },
             tooltip: {
               formatter: datum => {
                 return { name: datum.type, value: formatTokens(datum.value) }
@@ -382,33 +715,98 @@ const updateCharts = async () => {
             }
           })
         )
-        modelTokenPieChart.render()
+        modelTokenBarChart.render()
       }
     } else {
-      modelTokenPieChart.changeData(modelTokenUsage || [])
-      modelTokenPieChart.render()
+      modelTokenBarChart.changeData(sortedModelTokenUsage)
+      modelTokenBarChart.render()
     }
 
-    // Render or update error distribution pie chart
-    if (!errorPieChart) {
-      const container = document.getElementById('error-dist-pie')
+    // Sort provider token usage data by value descending
+    const sortedProviderTokenUsage = (providerTokenUsage || [])
+      .map(item => ({ ...item, value: Number(item.value) }))
+      .sort((a, b) => b.value - a.value)
+
+    // Render or update provider token usage horizontal bar chart
+    if (!providerTokenBarChart) {
+      const container = document.getElementById('provider-token-usage-bar')
       if (container) {
-        errorPieChart = markRaw(
-          new Pie('error-dist-pie', {
-            appendPadding: 10,
-            data: errorDist || [],
-            angleField: 'value',
-            colorField: 'type',
-            radius: 0.8,
-            label: { type: 'outer', content: '{name}: {value}' },
-            interactions: [{ type: 'element-active' }]
+        providerTokenBarChart = markRaw(
+          new Bar('provider-token-usage-bar', {
+            data: sortedProviderTokenUsage,
+            xField: 'value',
+            yField: 'type',
+            seriesField: 'type',
+            legend: false,
+            xAxis: {
+              ...getCommonAxisConfig(),
+              label: {
+                formatter: val => formatAxisValue(val)
+              }
+            },
+            yAxis: {
+              ...getCommonAxisConfig()
+            },
+            label: {
+              position: 'right',
+              formatter: datum => formatTokens(datum.value)
+            },
+            tooltip: {
+              formatter: datum => {
+                return { name: datum.type, value: formatTokens(datum.value) }
+              }
+            }
           })
         )
-        errorPieChart.render()
+        providerTokenBarChart.render()
       }
     } else {
-      errorPieChart.changeData(errorDist || [])
-      errorPieChart.render()
+      providerTokenBarChart.changeData(sortedProviderTokenUsage)
+      providerTokenBarChart.render()
+    }
+
+    // Sort error distribution data by value descending
+    const sortedErrorDist = (errorDist || [])
+      .map(item => ({ ...item, value: Number(item.value) }))
+      .sort((a, b) => b.value - a.value)
+
+    // Render or update error distribution horizontal bar chart
+    if (!errorBarChart) {
+      const container = document.getElementById('error-dist-bar')
+      if (container) {
+        errorBarChart = markRaw(
+          new Bar('error-dist-bar', {
+            data: sortedErrorDist,
+            xField: 'value',
+            yField: 'type',
+            seriesField: 'type',
+            legend: false,
+            color: getCssVar('--cs-error-color') || '#f56c6c',
+            xAxis: {
+              ...getCommonAxisConfig(),
+              label: {
+                formatter: val => formatAxisValue(val)
+              }
+            },
+            yAxis: {
+              ...getCommonAxisConfig()
+            },
+            label: {
+              position: 'right',
+              formatter: datum => formatNumber(datum.value)
+            },
+            tooltip: {
+              formatter: datum => {
+                return { name: datum.type, value: formatNumber(datum.value) }
+              }
+            }
+          })
+        )
+        errorBarChart.render()
+      }
+    } else {
+      errorBarChart.changeData(sortedErrorDist)
+      errorBarChart.render()
     }
   } catch (error) {
     console.error('Failed to update charts:', error)
@@ -501,10 +899,12 @@ onMounted(() => {
 
 onUnmounted(() => {
   if (refreshTimer) clearInterval(refreshTimer)
-  if (modelPieChart) modelPieChart.destroy()
-  if (modelTokenPieChart) modelTokenPieChart.destroy()
-  if (errorPieChart) errorPieChart.destroy()
+  if (modelBarChart) modelBarChart.destroy()
+  if (modelTokenBarChart) modelTokenBarChart.destroy()
+  if (providerTokenBarChart) providerTokenBarChart.destroy()
+  if (errorBarChart) errorBarChart.destroy()
   if (tokenBarChart) tokenBarChart.destroy()
+  if (requestsDualAxisChart) requestsDualAxisChart.destroy()
 })
 </script>
 
@@ -536,16 +936,79 @@ onUnmounted(() => {
   }
 }
 
+// KPI Cards
+.kpi-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--cs-space-md);
+  margin-bottom: var(--cs-space-lg);
+  padding: 4px;
+
+  @media (max-width: 1000px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.kpi-card {
+  display: flex;
+  align-items: center;
+  gap: var(--cs-space-md);
+  background-color: var(--cs-primary-bg-color);
+  border: 1px solid var(--cs-border-color-light);
+  border-radius: var(--cs-border-radius-md);
+  padding: var(--cs-space-md);
+  transition: box-shadow 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 2px 12px var(--cs-shadow-color);
+  }
+
+  .kpi-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: var(--cs-border-radius-md);
+    font-size: 24px;
+  }
+
+  .kpi-content {
+    flex: 1;
+
+    .kpi-value {
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--cs-text-color-primary);
+      line-height: 1.2;
+
+      &.text-danger {
+        color: var(--cs-error-color);
+      }
+    }
+
+    .kpi-label {
+      font-size: var(--cs-font-size-sm);
+      color: var(--cs-text-color-secondary);
+      margin-top: 4px;
+    }
+  }
+}
+
 .charts-section {
   margin-top: var(--cs-space-lg);
   display: flex;
   flex-direction: column;
-  gap: var(--cs-space-md);
+  gap: var(--cs-space-lg);
 }
 
 .charts-row {
   display: flex;
-  gap: var(--cs-space-md);
+  gap: var(--cs-space-lg);
   flex-wrap: wrap;
 }
 
@@ -574,6 +1037,62 @@ onUnmounted(() => {
 
     div {
       height: 350px;
+    }
+  }
+
+  &.bar-chart-small {
+    min-width: 300px;
+    flex: 1;
+
+    div {
+      height: 300px;
+    }
+  }
+
+  &.tab-chart {
+    min-width: 100%;
+    padding: 0;
+
+    :deep(.el-tabs) {
+      border: none;
+
+      .el-tabs__header {
+        margin: 0;
+        background-color: var(--cs-bg-color-light);
+        border-bottom: 1px solid var(--cs-border-color-light);
+
+        .el-tabs__nav {
+          border: none;
+        }
+
+        .el-tabs__item {
+          border: none;
+          padding: 0 20px;
+          height: 40px;
+          line-height: 40px;
+          font-size: var(--cs-font-size-sm);
+          color: var(--cs-text-color-secondary);
+          transition: all 0.3s;
+
+          &.is-active {
+            color: var(--cs-color-primary);
+            background-color: var(--cs-primary-bg-color);
+            font-weight: 500;
+          }
+
+          &:hover {
+            color: var(--cs-color-primary);
+          }
+        }
+      }
+
+      .el-tabs__content {
+        padding: var(--cs-space-md);
+      }
+    }
+
+    .tab-chart-content {
+      height: 380px;
     }
   }
 }

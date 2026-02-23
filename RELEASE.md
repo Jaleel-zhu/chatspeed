@@ -13,6 +13,18 @@
   - Supports the `Retry-After` response header from the server, prioritizing the server-suggested wait time.
   - This feature covers all proxy request paths: direct forwarding, protocol conversion, and Embedding requests.
 
+### 🪄 Improvements
+
+- **Proxy Statistics Dashboard Overhaul**: Completely redesigned the Proxy Stats page for better data visualization and user experience.
+  - **KPI Metric Cards**: Added four key performance indicator cards at the top: Total Requests, Total Tokens, Error Rate, and Active Models for at-a-glance insights.
+  - **Tabbed Layout**: Organized all charts into two tabbed sections for cleaner UI and better space utilization.
+    - **Trend Analysis Tab**: Daily Token consumption trends (default) and Daily Requests with Error Rate dual-axis chart.
+    - **Distribution Analysis Tab**: Model Token Usage (default), Model Usage Count, Provider Token Usage (new), and Error Code Distribution.
+  - **Horizontal Bar Charts**: Converted all pie charts to horizontal bar charts for easier comparison of top items.
+  - **Smart Axis Formatting**: Implemented automatic formatting for large numbers using Chinese units (万 for 10k+, 亿 for 100M+).
+  - **Visual Polish**: Applied dashed grid lines with solid axis lines for better readability; fixed tooltip display issues.
+  - **Provider Token Analytics**: Added new backend API and chart for provider-level token consumption analysis.
+
 ---
 
 ## [1.2.7]

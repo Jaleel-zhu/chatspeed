@@ -66,3 +66,12 @@ pub async fn get_ccproxy_error_distribution_stats(
     let store = main_store.read().map_err(|e| e.to_string())?;
     store.get_ccproxy_error_distribution_stats(days).map_err(|e| e.to_string())
 }
+
+#[tauri::command]
+pub async fn get_ccproxy_provider_token_usage_stats(
+    days: i32,
+    main_store: State<'_, Arc<std::sync::RwLock<MainStore>>>,
+) -> Result<Vec<serde_json::Value>, String> {
+    let store = main_store.read().map_err(|e| e.to_string())?;
+    store.get_ccproxy_provider_token_usage_stats(days).map_err(|e| e.to_string())
+}
