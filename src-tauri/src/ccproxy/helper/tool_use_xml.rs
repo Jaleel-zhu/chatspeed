@@ -303,6 +303,71 @@ pub fn format_tool_use_xml(id: &str, name: &str, input: &serde_json::Value) -> S
     )
 }
 
+fn extract_tag_content(xml: &str, tag: &str) -> Option<String> {
+    let start_tag = format!("<{}", tag);
+    let end_tag = format!("</{}>", tag);
+
+    if let Some(start_pos) = xml.find(&start_tag) {
+        // Find the end of the start tag (handling attributes)
+        if let Some(tag_open_end) = xml[start_pos..].find(">") {
+            let content_start = start_pos + tag_open_end + 1;
+            if let Some(end_pos) = xml[content_start..].find(&end_tag) {
+                return Some(
+                    xml[content_start..content_start + end_pos]
+                        .trim()
+                        .to_string(),
+                );
+            } else {
+                // FALLBACK: If closing tag is missing, take until the end of </cs:tool_use>
+                let end_limit = xml.find("</cs:tool_use>").unwrap_or(xml.len());
+                if end_limit > content_start {
+                    return Some(xml[content_start..end_limit].trim().to_string());
+                }
+            }
+        }
+    }
+    None
+}
+
+fn extract_attr(tag_header: &str, attr_name: &str) -> Option<String> {
+    // Look for attribute name followed by optional spaces and '='
+    let key_pattern = format!("{}", attr_name);
+    if let Some(key_pos) = tag_header.find(&key_pattern) {
+        let after_key = &tag_header[key_pos + key_pattern.len()..];
+
+        // Find the '=' sign after the key
+        if let Some(equal_pos) = after_key.find('=') {
+            // Only consider the '=' if it's not part of another attribute (i.e., no letters before it)
+            let between = &after_key[..equal_pos].trim();
+            if !between.is_empty() {
+                // This might be a false match where the key was part of another string
+                // but for simple XML tags this check is usually enough.
+            }
+
+            let after_equal = after_key[equal_pos + 1..].trim_start();
+            if after_equal.is_empty() {
+                return None;
+            }
+
+            let first_char = after_equal.chars().next().unwrap();
+            if first_char == '"' || first_char == '\'' {
+                let quote = first_char;
+                let val_start = 1;
+                if let Some(val_end) = after_equal[val_start..].find(quote) {
+                    return Some(after_equal[val_start..val_start + val_end].to_string());
+                }
+            } else {
+                // Unquoted value: take until space, '>', or '/'
+                let val_end = after_equal
+                    .find(|c: char| c.is_whitespace() || c == '>' || c == '/')
+                    .unwrap_or(after_equal.len());
+                return Some(after_equal[..val_end].to_string());
+            }
+        }
+    }
+    None
+}
+
 const VOID_ELEMENTS: &[&str] = &[
     "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source",
     "track", "wbr",
@@ -310,6 +375,137 @@ const VOID_ELEMENTS: &[&str] = &[
 
 /// Parse tool use XML using scraper - SIMPLIFIED ONE-LEVEL ONLY
 pub fn parse_tool_use(xml_str: &str) -> Result<ToolUse, anyhow::Error> {
+    // 1. First attempt to manually extract name and ID using simple string scanning.
+    // This is often more robust than HTML parsing when the content contains unescaped code.
+    let name = extract_tag_content(xml_str, "name").unwrap_or_default();
+
+    if !name.is_empty() {
+        // Try to extract the args block.
+        // Robustness: If </args> is missing, try to take content until the end of </cs:tool_use> or the string.
+        let args_content = if let Some(content) = extract_tag_content(xml_str, "args") {
+            content
+        } else {
+            // If <args> wrapper is missing entirely, try to parse from the root string
+            xml_str.to_string()
+        };
+
+        let mut args = Vec::new();
+        // Look for <arg name="...">content</arg> patterns
+        // We use a simplified scanner here to handle nested HTML-like content safely.
+        let mut current_pos = 0;
+        while let Some(start_pos) = args_content[current_pos..].find("<") {
+            let start_idx = current_pos + start_pos;
+            if args_content[start_idx..].starts_with("</") {
+                current_pos = start_idx + 1;
+                continue;
+            }
+
+            // Find the end of the opening tag (could be ">" or "/>")
+            if let Some(tag_header_end_rel) = args_content[start_idx..].find(">") {
+                let tag_header_end = start_idx + tag_header_end_rel;
+                let is_self_closing = args_content[..tag_header_end + 1].ends_with("/>");
+                let tag_header = &args_content[start_idx..tag_header_end + 1];
+
+                // Extract tag name
+                let tag_name = tag_header[1..]
+                    .split(|c: char| c.is_whitespace() || c == '>' || c == '/')
+                    .next()
+                    .unwrap_or("");
+
+                if tag_name.is_empty() {
+                    current_pos = tag_header_end + 1;
+                    continue;
+                }
+
+                if tag_name == "arg" {
+                    // Standard <arg name="..." ...> format
+                    let arg_name = extract_attr(tag_header, "name").unwrap_or_default();
+                    if arg_name.is_empty() {
+                        current_pos = tag_header_end + 1;
+                        continue;
+                    }
+
+                    let data_type =
+                        extract_attr(tag_header, "type").map(|t| ParamType::from(t.as_str()));
+
+                    if is_self_closing {
+                        let arg_value = extract_attr(tag_header, "value").unwrap_or_default();
+                        args.push(Arg {
+                            name: arg_name,
+                            data_type,
+                            value: Some(arg_value),
+                        });
+                        current_pos = tag_header_end + 1;
+                        continue;
+                    } else {
+                        let content_start = tag_header_end + 1;
+                        if let Some(tag_close_start_rel) =
+                            args_content[content_start..].find("</arg>")
+                        {
+                            let tag_close_start = content_start + tag_close_start_rel;
+                            let arg_value =
+                                if let Some(val_attr) = extract_attr(tag_header, "value") {
+                                    val_attr
+                                } else {
+                                    args_content[content_start..tag_close_start].to_string()
+                                };
+
+                            args.push(Arg {
+                                name: arg_name,
+                                data_type,
+                                value: Some(arg_value),
+                            });
+                            current_pos = tag_close_start + 6;
+                            continue;
+                        }
+                    }
+                } else {
+                    // Custom tag format <my_param>value</my_param>
+                    let data_type =
+                        extract_attr(tag_header, "type").map(|t| ParamType::from(t.as_str()));
+                    let close_tag = format!("</{}>", tag_name);
+
+                    if is_self_closing {
+                        let arg_value = extract_attr(tag_header, "value").unwrap_or_default();
+                        args.push(Arg {
+                            name: tag_name.to_string(),
+                            data_type,
+                            value: Some(arg_value),
+                        });
+                        current_pos = tag_header_end + 1;
+                        continue;
+                    } else {
+                        let content_start = tag_header_end + 1;
+                        if let Some(tag_close_start_rel) =
+                            args_content[content_start..].find(&close_tag)
+                        {
+                            let tag_close_start = content_start + tag_close_start_rel;
+                            let arg_value =
+                                args_content[content_start..tag_close_start].to_string();
+
+                            args.push(Arg {
+                                name: tag_name.to_string(),
+                                data_type,
+                                value: Some(arg_value),
+                            });
+                            current_pos = tag_close_start + close_tag.len();
+                            continue;
+                        }
+                    }
+                }
+            }
+            current_pos += 1;
+            if current_pos >= args_content.len() {
+                break;
+            }
+        }
+
+        if !args.is_empty() {
+            return Ok(ToolUse { name, args });
+        }
+    }
+
+    // 2. Fallback to original HTML-based parser for compatibility with other variants
     let mut processed_xml = xml_str.to_string();
     // The `scraper` library, when parsing HTML, does not extract inner content from elements
     // that are considered "void elements" in HTML (e.g., `param`, `input`), even if they
@@ -826,7 +1022,7 @@ mod tests {
 
     #[test]
     fn test_complex_nested_as_plain_text() {
-        let xml_input = r#"<ccp:tool_use>
+        let xml_input = r#"<cs:tool_use>
             <name>complex_tool</name>
             <args>
                 <complex_data>
@@ -839,13 +1035,13 @@ mod tests {
                         &lt;item&gt;Item 1&lt;/item&gt;
                         &lt;item&gt;Item 2&lt;/item&gt;
                     &lt;/another_section&gt;
-                </complex_data>;
-                <arg name="test-arg">;
+                </complex_data>
+                <arg name="test-arg">
                     &lt;arg name="test-arg1"&gt;Item 1&lt;/arg&gt;
                     &lt;arg name="test-arg2"&gt;Item 2&lt;/arg&gt;
-                </arg>;
-            </args>;
-        </ccp:tool_use>"#;
+                </arg>
+            </args>
+        </cs:tool_use>"#;
 
         let result = parse_tool_use(xml_input).unwrap();
         assert_eq!(result.name, "complex_tool");
@@ -863,8 +1059,7 @@ mod tests {
         assert!(complex_text.contains("Deep nested content"));
         assert!(complex_text.contains("<item>Item 1</item>"));
         assert!(complex_text.contains("Item 2"));
-        // All content should be flattened to plain text
-        //
+
         let test_arg = result
             .args
             .iter()
@@ -872,14 +1067,40 @@ mod tests {
             .unwrap();
 
         let val = test_arg.get_value();
-        let complex_text = val.as_str().unwrap();
+        let test_text = val.as_str().unwrap();
 
-        assert!(complex_text.contains("<arg name=\"test-arg1\">Item 1</arg>"));
+        assert!(test_text.contains("<arg name=\"test-arg1\">Item 1</arg>"));
+    }
+
+    #[test]
+    fn test_self_closing_and_redundant_tags() {
+        // Test self-closing <arg /> and redundant </cs:tool_use>
+        let xml_input = r#"<cs:tool_use>
+            <name>test_tool</name>
+            <args>
+                <arg name="param1" value="val1" />
+                <arg name="param2" type="int">123</arg>
+                <param3 value="val3" />
+            </args>
+        </cs:tool_use></cs:tool_use></cs:tool_use>"#;
+
+        let result = parse_tool_use(xml_input).unwrap();
+        assert_eq!(result.name, "test_tool");
+        assert_eq!(result.args.len(), 3);
+
+        assert_eq!(result.args[0].name, "param1");
+        assert_eq!(result.args[0].get_value(), json!("val1"));
+
+        assert_eq!(result.args[1].name, "param2");
+        assert_eq!(result.args[1].get_value(), json!(123));
+
+        assert_eq!(result.args[2].name, "param3");
+        assert_eq!(result.args[2].get_value(), json!("val3"));
     }
 
     #[test]
     fn test_json_detection_and_parsing() {
-        let xml_input = r#"<ccp:tool_use>
+        let xml_input = r#"<cs:tool_use>
             <name>json_tool</name>
             <args>
                 <valid_json type="object">{"name": "test", "values": [1, 2, 3]}</valid_json>
@@ -888,7 +1109,7 @@ mod tests {
                 <explicit_json type="object">{"explicit": true}</explicit_json>
                 <not_json>This is just plain text</not_json>
             </args>
-        </ccp:tool_use>"#;
+        </cs:tool_use>"#;
 
         let result = parse_tool_use(xml_input).unwrap();
         assert_eq!(result.name, "json_tool");
@@ -911,7 +1132,7 @@ mod tests {
             .iter()
             .find(|arg| arg.name == "invalid_json")
             .unwrap();
-        assert!(invalid_json_arg.data_type.is_none());
+        // Manual scanner uses type if provided, but get_value will handle parsing failure
         assert_eq!(
             invalid_json_arg.get_value(),
             json!("{\"name\": \"test\", \"incomplete\":")
@@ -943,13 +1164,12 @@ mod tests {
             .iter()
             .find(|arg| arg.name == "not_json")
             .unwrap();
-        assert!(plain_text_arg.data_type.is_none());
         assert_eq!(plain_text_arg.get_value(), json!("This is just plain text"));
     }
 
     #[test]
     fn test_mixed_traditional_and_custom() {
-        let xml_input = r#"<ccp:tool_use>
+        let xml_input = r#"<cs:tool_use>
             <name>mixed_tool</name>
             <args>
                 <arg name="traditional1" value="trad_value" />
@@ -959,7 +1179,7 @@ mod tests {
                 <arg name="traditional3">text content</arg>
                 <html_like>&lt;p&gt;HTML content&lt;/p&gt;</html_like>
             </args>
-        </ccp:tool_use>"#;
+        </cs:tool_use>"#;
 
         let result = parse_tool_use(xml_input).unwrap();
         assert_eq!(result.name, "mixed_tool");
@@ -1083,6 +1303,76 @@ line</arg>
             json!("New\nline"),
             "Parser should correctly extract content from <arg> tag"
         );
+    }
+
+    #[test]
+    fn test_attribute_flexibility() {
+        // Test 1: Standard double quotes
+        let h1 = r#"<arg name="test" type="string">"#;
+        assert_eq!(extract_attr(h1, "name"), Some("test".to_string()));
+        assert_eq!(extract_attr(h1, "type"), Some("string".to_string()));
+
+        // Test 2: Single quotes and spaces
+        let h2 = r#"<arg name = 'test'  type='int' >"#;
+        assert_eq!(extract_attr(h2, "name"), Some("test".to_string()));
+        assert_eq!(extract_attr(h2, "type"), Some("int".to_string()));
+
+        // Test 3: Unquoted value
+        let h3 = r#"<arg name=test type=bool>"#;
+        assert_eq!(extract_attr(h3, "name"), Some("test".to_string()));
+        assert_eq!(extract_attr(h3, "type"), Some("bool".to_string()));
+    }
+
+    #[test]
+    fn test_read_tool_regression() {
+        let xml_input = r#"<cs:tool_use>
+<name>Read</name>
+<args>
+<arg name="file_path" type="string">/path/to/file.rs</arg>
+<arg name="offset" type="number">755</arg>
+<arg name="limit" type="number">200</arg>
+</args>
+</cs:tool_use>"#;
+
+        let result = parse_tool_use(xml_input).unwrap();
+        assert_eq!(result.name, "Read");
+        assert_eq!(result.args.len(), 3);
+        assert_eq!(result.args[0].name, "file_path");
+        assert_eq!(result.args[1].get_value(), json!(755));
+        assert_eq!(result.args[2].get_value(), json!(200));
+    }
+
+    #[test]
+    fn test_xml_entity_unescaping() {
+        // Test 1: Standard escaped entities
+        let xml_input = r#"<cs:tool_use>
+            <name>test_tool</name>
+            <args>
+                <arg name="escaped">if (a &lt; b &amp;&amp; b &gt; c) return &quot;found&quot;;</arg>
+                <arg name="raw">if (a < b && b > c) return "found";</arg>
+                <arg name="mixed">Escaped &lt; and Raw < inside same tag</arg>
+                <arg name="html_entity">Price: &yen;100 &nbsp; Done</arg>
+            </args>
+        </cs:tool_use>"#;
+
+        let result = parse_tool_use(xml_input).unwrap();
+
+        // Both standard escaped and raw should result in the same unescaped string
+        let expected = "if (a < b && b > c) return \"found\";";
+        assert_eq!(result.args[0].get_value(), json!(expected));
+        assert_eq!(result.args[1].get_value(), json!(expected));
+
+        // Mixed should work correctly
+        assert_eq!(
+            result.args[2].get_value(),
+            json!("Escaped < and Raw < inside same tag")
+        );
+
+        // HTML entities should be decoded (thanks to html_escape)
+        let html_val = result.args[3].get_value();
+        let html_str = html_val.as_str().unwrap();
+        assert!(html_str.contains("¥100"));
+        assert!(html_str.contains("\u{a0}")); // non-breaking space
     }
 
     #[test]

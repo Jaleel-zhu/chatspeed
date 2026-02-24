@@ -154,6 +154,13 @@ pub fn process_tool_calls_in_buffer(
             }
         } else {
             // We are not in a tool call, looking for the next start tag
+            // But first, clean up any redundant closing tags that might be hallucinated by the model (e.g. Kimi)
+            while status.tool_compat_buffer.starts_with(TOOL_TAG_END) {
+                log::debug!("Cleaning up redundant tool closing tag from buffer");
+                status.tool_compat_buffer = status.tool_compat_buffer[TOOL_TAG_END.len()..].to_string();
+            }
+            if status.tool_compat_buffer.is_empty() { break; }
+
             let next_todo_pos = status.tool_compat_buffer.find(TODO_TAG_START);
             let next_tool_pos = status.tool_compat_buffer.find(TOOL_TAG_START);
 

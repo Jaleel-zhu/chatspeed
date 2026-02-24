@@ -103,7 +103,12 @@ pub struct ClaudeMetadata {
 pub struct ClaudeThinking {
     #[serde(rename = "type")]
     pub thinking_type: String, // "enabled"
+    #[serde(default = "default_thinking_budget")]
     pub budget_tokens: i32, // x >= 1024 and < max_tokens
+}
+
+fn default_thinking_budget() -> i32 {
+    1024
 }
 
 /// Cache control configuration for Claude

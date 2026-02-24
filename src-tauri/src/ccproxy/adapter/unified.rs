@@ -53,6 +53,9 @@ pub struct UnifiedRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub top_logprobs: Option<i32>, // Number of most likely tokens to return
 
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub logit_bias: Option<HashMap<String, f32>>,
+
     // Claude-specific parameters
     #[serde(skip_serializing_if = "Option::is_none")]
     pub metadata: Option<UnifiedMetadata>, // Request metadata

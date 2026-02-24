@@ -193,8 +193,11 @@ impl BackendAdapter for OpenAIBackendAdapter {
                 for block in &msg.content {
                     match block {
                         UnifiedContentBlock::Text { text } => {
-                            primary_message_parts
-                                .push(OpenAIMessageContentPart::Text { text: text.clone() });
+                            let cleaned = cleanup_content(text);
+                            if !cleaned.is_empty() {
+                                primary_message_parts
+                                    .push(OpenAIMessageContentPart::Text { text: cleaned });
+                            }
                         }
                         UnifiedContentBlock::Image { media_type, data } => {
                             primary_message_parts.push(OpenAIMessageContentPart::ImageUrl {
@@ -245,12 +248,30 @@ impl BackendAdapter for OpenAIBackendAdapter {
                                 ..Default::default()
                             });
                         }
-                        _ => {} // Ignore Thinking blocks
+                        UnifiedContentBlock::Thinking { .. } => {
+                            // Thinking blocks will be handled after the loop
+                        }
                     }
                 }
 
-                if !primary_message_parts.is_empty() || !primary_tool_calls.is_empty() {
-                    let content = if primary_message_parts.is_empty() {
+                // Collect reasoning content from both the dedicated field and Thinking blocks
+                let mut combined_reasoning = msg.reasoning_content.clone();
+                for block in &msg.content {
+                    if let UnifiedContentBlock::Thinking { thinking } = block {
+                        if let Some(ref mut r) = combined_reasoning {
+                            r.push_str("\n");
+                            r.push_str(thinking);
+                        } else {
+                            combined_reasoning = Some(thinking.clone());
+                        }
+                    }
+                }
+
+                if !primary_message_parts.is_empty()
+                    || !primary_tool_calls.is_empty()
+                    || combined_reasoning.is_some()
+                {
+                    let mut content = if primary_message_parts.is_empty() {
                         None
                     } else if primary_message_parts
                         .iter()
@@ -267,10 +288,19 @@ impl BackendAdapter for OpenAIBackendAdapter {
                             })
                             .collect::<Vec<&str>>()
                             .join("\n");
-                        Some(OpenAIMessageContent::Text(combined_text))
+                        if combined_text.trim().is_empty() {
+                            None
+                        } else {
+                            Some(OpenAIMessageContent::Text(combined_text))
+                        }
                     } else {
                         Some(OpenAIMessageContent::Parts(primary_message_parts))
                     };
+
+                    // Special case for assistant messages: content must not be None if tool_calls is None
+                    if role_str == "assistant" && content.is_none() && primary_tool_calls.is_empty() {
+                        content = Some(OpenAIMessageContent::Text(" ".to_string()));
+                    }
 
                     openai_messages.push(UnifiedChatMessage {
                         role: Some(role_str.to_string()),
@@ -280,6 +310,7 @@ impl BackendAdapter for OpenAIBackendAdapter {
                         } else {
                             Some(primary_tool_calls)
                         },
+                        reasoning_content: combined_reasoning,
                         ..Default::default()
                     });
                 }
@@ -334,20 +365,50 @@ impl BackendAdapter for OpenAIBackendAdapter {
                 }
             });
 
-        let reasoning_effort = if let Some(thinking) = &unified_request.thinking {
+        let is_openai_reasoning_model = unified_request.model.starts_with("o1-") || unified_request.model.starts_with("o3-");
+        // Check if it's a MiniMax model (common aliases or direct naming)
+        let is_minimax = unified_request.model.to_lowercase().contains("minimax");
+        // Check if it's a Zhipu GLM model
+        let is_glm = unified_request.model.to_lowercase().contains("glm");
+        // Check if it's a DeepSeek model
+        let is_deepseek = unified_request.model.to_lowercase().contains("deepseek");
+        // Check if it's a Qwen model
+        let is_qwen = unified_request.model.to_lowercase().contains("qwen") || unified_request.model.to_lowercase().contains("qwq");
+        // Check if it's a Kimi (Moonshot) model
+        let is_kimi = unified_request.model.to_lowercase().contains("kimi") || unified_request.model.to_lowercase().contains("moonshot");
+
+        let (reasoning_effort, reasoning_split, vendor_thinking, enable_thinking, thinking_budget) = if let Some(thinking) = &unified_request.thinking {
             if matches!(thinking.include_thoughts, Some(true)) {
-                let effort = match thinking.budget_tokens {
-                    Some(budget) if budget < 4096 => "low",
-                    Some(budget) if budget >= 4096 && budget <= 16384 => "medium",
-                    Some(budget) if budget > 16384 => "high",
-                    _ => "medium", // Default for Some(0) or None
+                let effort = if is_openai_reasoning_model {
+                    let e = match thinking.budget_tokens {
+                        Some(budget) if budget < 4096 => "low",
+                        Some(budget) if budget >= 4096 && budget <= 16384 => "medium",
+                        Some(budget) if budget > 16384 => "high",
+                        _ => "medium",
+                    };
+                    Some(e.to_string())
+                } else {
+                    None
                 };
-                Some(effort.to_string())
+                
+                let split = if is_minimax { Some(true) } else { None };
+                let v_thinking = if is_glm || is_deepseek || is_kimi {
+                    Some(crate::ccproxy::types::openai::ZhipuThinking {
+                        r#type: "enabled".to_string(),
+                    })
+                } else {
+                    None
+                };
+
+                let e_thinking = if is_qwen { Some(true) } else { None };
+                let t_budget = if is_qwen { thinking.budget_tokens } else { None };
+                
+                (effort, split, v_thinking, e_thinking, t_budget)
             } else {
-                None
+                (None, None, None, None, None)
             }
         } else {
-            None
+            (None, None, None, None, None)
         };
 
         // --- New Prompt Injection Logic ---
@@ -459,12 +520,16 @@ impl BackendAdapter for OpenAIBackendAdapter {
             user: unified_request.user.clone(),
             tools: openai_tools,
             tool_choice: openai_tool_choice,
-            logprobs: unified_request.logprobs,
-            top_logprobs: unified_request.top_logprobs,
+            logprobs: if is_deepseek && vendor_thinking.is_some() { None } else { unified_request.logprobs },
+            top_logprobs: if is_deepseek && vendor_thinking.is_some() { None } else { unified_request.top_logprobs },
             stream_options: None,
-            logit_bias: None, // Not supported in unified request yet
+            logit_bias: unified_request.logit_bias.clone(),
             reasoning_effort,
-            store: None, // Not supported in unified request yet
+            reasoning_split,
+            thinking: vendor_thinking,
+            enable_thinking,
+            thinking_budget,
+            store: None,
         };
 
         headers.insert(
@@ -642,6 +707,21 @@ impl BackendAdapter for OpenAIBackendAdapter {
             }
         }
 
+        // Handle MiniMax reasoning_details
+        if let Some(details) = first_choice.message.reasoning_details {
+            for detail in details {
+                if detail["type"] == "reasoning.text" {
+                    if let Some(text) = detail["text"].as_str() {
+                        if !text.is_empty() {
+                            content_blocks.push(UnifiedContentBlock::Thinking {
+                                thinking: text.to_string(),
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
         // Handle native tool calls (non-tool compatibility mode)
         if !backend_response.tool_compat_mode {
             if let Some(tool_calls) = first_choice.message.tool_calls {
@@ -727,6 +807,21 @@ impl BackendAdapter for OpenAIBackendAdapter {
                             &sse_status,
                             &mut unified_chunks,
                         );
+                    }
+
+                    // Handle MiniMax reasoning_details in stream delta
+                    if let Some(details) = &delta.reasoning_details {
+                        for detail in details {
+                            if detail["type"] == "reasoning.text" {
+                                if let Some(text) = detail["text"].as_str() {
+                                    self.process_reasoning_content(
+                                        text.to_string(),
+                                        &sse_status,
+                                        &mut unified_chunks,
+                                    );
+                                }
+                            }
+                        }
                     }
 
                     if let Some(content) = &delta.reference {
@@ -867,6 +962,13 @@ impl BackendAdapter for OpenAIBackendAdapter {
             },
         })
     }
+}
+
+/// Clean up internal markers like <!--[ToolCalls]--> from content
+fn cleanup_content(text: &str) -> String {
+    // regex would be cleaner but let's use simple replacement for common markers first
+    // to avoid adding new dependencies if not already present.
+    text.replace("<!--[ToolCalls]-->", "").trim().to_string()
 }
 
 // Private helper methods for OpenAIBackendAdapter

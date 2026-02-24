@@ -23,6 +23,9 @@ pub struct UnifiedChatMessage {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reasoning_content: Option<String>,
 
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reasoning_details: Option<Vec<Value>>,
+
     // An extended reference content to store additional information, e.g., citations, sources, etc.
     // It's only for output messages.
     // DO NOT delete this field
@@ -98,7 +101,20 @@ pub struct OpenAIChatCompletionRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reasoning_effort: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub reasoning_split: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub thinking: Option<ZhipuThinking>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub enable_thinking: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub thinking_budget: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub store: Option<bool>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ZhipuThinking {
+    pub r#type: String, // "enabled", "disabled"
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)] // Added Deserialize

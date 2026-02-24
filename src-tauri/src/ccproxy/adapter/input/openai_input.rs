@@ -69,10 +69,27 @@ pub fn from_openai(
             convert_openai_content(msg.content, msg.tool_calls)?
         };
 
+        // Collect reasoning content from both reasoning_content and reasoning_details (MiniMax)
+        let mut combined_reasoning = msg.reasoning_content.clone();
+        if let Some(details) = msg.reasoning_details {
+            for detail in details {
+                if detail["type"] == "reasoning.text" {
+                    if let Some(text) = detail["text"].as_str() {
+                        if let Some(ref mut r) = combined_reasoning {
+                            r.push_str("\n");
+                            r.push_str(text);
+                        } else {
+                            combined_reasoning = Some(text.to_string());
+                        }
+                    }
+                }
+            }
+        }
+
         messages.push(UnifiedMessage {
             role,
             content,
-            reasoning_content: None,
+            reasoning_content: combined_reasoning,
         });
     }
 
@@ -123,13 +140,14 @@ pub fn from_openai(
         user: req.user.clone(),
         logprobs: req.logprobs,
         top_logprobs: req.top_logprobs,
+        logit_bias: req.logit_bias.clone(),
         // Claude-specific parameters - map OpenAI user to Claude metadata.user_id
-        metadata: req.user.map(
+        metadata: req.user.clone().map(
             |user_id| crate::ccproxy::adapter::unified::UnifiedMetadata {
                 user_id: Some(user_id),
             },
         ),
-        thinking: if req.reasoning_effort.is_some() {
+        thinking: if req.reasoning_effort.is_some() || req.reasoning_split.unwrap_or(false) {
             Some(crate::ccproxy::adapter::unified::UnifiedThinking {
                 include_thoughts: Some(true),
                 budget_tokens: None, // No direct mapping from reasoning_effort to a token budget
