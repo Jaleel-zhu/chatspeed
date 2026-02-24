@@ -271,7 +271,7 @@ pub fn toggle_proxy_switcher_window(app: &tauri::AppHandle) {
     if app.get_webview_window(window_label).is_none() {
         let _ = create_proxy_switcher_window(app, false);
     }
-    
+
     if let Some(window) = app.get_webview_window(window_label) {
         match (window.is_visible(), window.is_focused()) {
             (Ok(true), Ok(true)) => {
@@ -885,6 +885,7 @@ fn create_window_internal(
         return Ok(window);
     }
 
+    #[allow(unused_mut)]
     let mut builder = WebviewWindowBuilder::new(app, label, tauri::WebviewUrl::App(url.into()))
         .title(title)
         .inner_size(size.0, size.1)
@@ -907,25 +908,75 @@ fn create_window_internal(
     // Windows transparency requirements
     #[cfg(target_os = "windows")]
     {
-        builder = builder.transparent(true);
-        builder = builder.decorations(false);
+        builder = builder.transparent(true).decorations(false);
     }
 
-    builder.build().map_err(|e| format!("Failed to create window '{}': {}", label, e))
+    builder
+        .build()
+        .map_err(|e| format!("Failed to create window '{}': {}", label, e))
 }
 
 pub fn create_main_window(app: &tauri::AppHandle) -> Result<WebviewWindow, String> {
-    create_window_internal(app, "main", "ChatSpeed", "/", (600.0, 700.0), (450.0, 600.0), true, false, false)
+    create_window_internal(
+        app,
+        "main",
+        "ChatSpeed",
+        "/",
+        (600.0, 700.0),
+        (450.0, 600.0),
+        true,
+        false,
+        false,
+    )
 }
 
-pub fn create_assistant_window(app: &tauri::AppHandle, visible: bool) -> Result<WebviewWindow, String> {
-    create_window_internal(app, "assistant", "Assistant", "/assistant", (500.0, 600.0), (500.0, 400.0), visible, true, false)
+pub fn create_assistant_window(
+    app: &tauri::AppHandle,
+    visible: bool,
+) -> Result<WebviewWindow, String> {
+    create_window_internal(
+        app,
+        "assistant",
+        "Assistant",
+        "/assistant",
+        (500.0, 600.0),
+        (500.0, 400.0),
+        visible,
+        true,
+        false,
+    )
 }
 
-pub fn create_workflow_window(app: &tauri::AppHandle, visible: bool) -> Result<WebviewWindow, String> {
-    create_window_internal(app, "workflow", "Workflow", "/workflow", (1024.0, 650.0), (800.0, 400.0), visible, false, false)
+pub fn create_workflow_window(
+    app: &tauri::AppHandle,
+    visible: bool,
+) -> Result<WebviewWindow, String> {
+    create_window_internal(
+        app,
+        "workflow",
+        "Workflow",
+        "/workflow",
+        (1024.0, 650.0),
+        (800.0, 400.0),
+        visible,
+        false,
+        false,
+    )
 }
 
-pub fn create_proxy_switcher_window(app: &tauri::AppHandle, visible: bool) -> Result<WebviewWindow, String> {
-    create_window_internal(app, "proxy_switcher", "Proxy Switcher", "/proxy-switcher", (360.0, 420.0), (360.0, 420.0), visible, true, true)
+pub fn create_proxy_switcher_window(
+    app: &tauri::AppHandle,
+    visible: bool,
+) -> Result<WebviewWindow, String> {
+    create_window_internal(
+        app,
+        "proxy_switcher",
+        "Proxy Switcher",
+        "/proxy-switcher",
+        (360.0, 420.0),
+        (360.0, 420.0),
+        visible,
+        true,
+        true,
+    )
 }
