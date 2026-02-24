@@ -2,7 +2,7 @@
 
 # Release Notes
 
-## [1.2.8] - Pending Release
+## [1.2.8]
 
 ### 🚀 New Features
 
