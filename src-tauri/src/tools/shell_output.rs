@@ -51,7 +51,7 @@ pub(crate) fn prepare_shell_output(
     let command_reduction = (!has_compound_shell_operator)
         .then(|| reduce_command_output(&normalized_command, exit_code, &raw_content))
         .flatten();
-    let (display_content, llm_content, output_was_reduced) =
+    let (mut display_content, mut llm_content, mut output_was_reduced) =
         if let Some(reduction) = command_reduction.as_ref() {
             (
                 reduction.content.clone(),
@@ -80,6 +80,12 @@ pub(crate) fn prepare_shell_output(
             let output_was_reduced = llm_content != raw_content;
             (display_content, llm_content, output_was_reduced)
         };
+
+    if llm_content != raw_content && llm_content.chars().count() >= raw_content.chars().count() {
+        display_content.clone_from(&raw_content);
+        llm_content.clone_from(&raw_content);
+        output_was_reduced = false;
+    }
 
     PreparedShellOutput {
         raw_content,
@@ -605,6 +611,32 @@ mod tests {
             .as_str()
             .expect("persisted output path missing");
         fs::remove_file(resolve_ai_temp_path(Path::new(ai_path))).unwrap();
+    }
+
+    #[test]
+    fn unicode_output_keeps_raw_content_when_reduction_is_not_shorter_by_characters() {
+        let stdout = "构".repeat(30);
+        let prepared = prepare_shell_output("pnpm build", 0, &stdout, "");
+        let expected = format!("Exit code: 0\n\nstdout:\n{stdout}");
+        let reducer_candidate =
+            "Exit code: 0\n\nBuild result:\nBuild completed. Full output was reduced.";
+
+        assert!(reducer_candidate.len() < expected.len());
+        assert!(reducer_candidate.chars().count() >= expected.chars().count());
+        assert_eq!(prepared.display_content, expected);
+        assert_eq!(prepared.llm_content, expected);
+        assert!(!prepared.output_was_reduced);
+    }
+
+    #[test]
+    fn compact_json_keeps_raw_output_when_json_formatting_is_not_shorter() {
+        let stdout = r#"{"ok":true}"#;
+        let prepared = prepare_shell_output("custom-command", 0, stdout, "");
+        let expected = format!("Exit code: 0\n\nstdout:\n{stdout}");
+
+        assert_eq!(prepared.display_content, expected);
+        assert_eq!(prepared.llm_content, expected);
+        assert!(!prepared.output_was_reduced);
     }
 
     #[test]

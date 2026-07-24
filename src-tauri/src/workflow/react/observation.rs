@@ -1,4 +1,7 @@
-use crate::libs::ai_temp::{persist_tool_output, LARGE_TOOL_OUTPUT_CHAR_LIMIT};
+use crate::libs::ai_temp::{
+    persist_tool_output, PersistedToolOutput, LARGE_TOOL_OUTPUT_CHAR_LIMIT,
+};
+use crate::tools::helper::detect_json_stdout;
 use crate::tools::{
     ToolError, TOOL_BASH, TOOL_COMPLETE_WORKFLOW, TOOL_EDIT_FILE, TOOL_GLOB, TOOL_GREP,
     TOOL_LIST_DIR, TOOL_PLAN_EDIT_NOTE, TOOL_PLAN_READ_NOTE, TOOL_PLAN_WRITE_NOTE, TOOL_READ_FILE,
@@ -33,11 +36,6 @@ pub struct ReinforcedResult {
     pub observation_kind: Option<ObservationKind>,
 }
 
-pub(crate) struct PersistedOverflowPreview {
-    content: String,
-    next_offset: usize,
-}
-
 fn value_to_text(value: &Value) -> String {
     value
         .as_str()
@@ -49,12 +47,11 @@ fn truncate_text_for_preview(value: &str, max_chars: usize) -> String {
     value.chars().take(max_chars).collect()
 }
 
-fn line_based_preview(value: &str, max_chars: usize) -> PersistedOverflowPreview {
+fn line_based_preview(value: &str, max_chars: usize) -> String {
     let mut preview = String::new();
     let mut used_chars = 0;
-    let mut next_offset = 0;
 
-    for (index, line) in value.lines().enumerate() {
+    for line in value.lines() {
         let line_chars = line.chars().count();
         let separator_chars = usize::from(!preview.is_empty());
         if used_chars + separator_chars + line_chars > max_chars {
@@ -67,19 +64,12 @@ fn line_based_preview(value: &str, max_chars: usize) -> PersistedOverflowPreview
         }
         preview.push_str(line);
         used_chars += line_chars;
-        next_offset = index + 1;
     }
 
     if preview.is_empty() {
-        PersistedOverflowPreview {
-            content: truncate_text_for_preview(value, max_chars),
-            next_offset: 0,
-        }
+        truncate_text_for_preview(value, max_chars)
     } else {
-        PersistedOverflowPreview {
-            content: preview,
-            next_offset,
-        }
+        preview
     }
 }
 
@@ -91,6 +81,25 @@ impl ObservationReinforcer {
         extra_context: Option<Value>,
         primary_root: Option<&std::path::Path>,
     ) -> ReinforcedResult {
+        Self::reinforce_with_context_and_persist(
+            tool_call,
+            result,
+            extra_context,
+            primary_root,
+            persist_tool_output,
+        )
+    }
+
+    fn reinforce_with_context_and_persist<F>(
+        tool_call: &Value,
+        result: &Result<Value, ToolError>,
+        extra_context: Option<Value>,
+        primary_root: Option<&std::path::Path>,
+        persist_overflow: F,
+    ) -> ReinforcedResult
+    where
+        F: FnOnce(&str) -> std::io::Result<PersistedToolOutput>,
+    {
         // Extract tool name and arguments from the standard tool_call metadata structure
         let (tool_name, args) = if let Some(func) = tool_call.get("function") {
             let name = func
@@ -236,6 +245,26 @@ impl ObservationReinforcer {
                     "text"
                 };
 
+                let json_compacted_res = if !matches!(
+                    tool_name,
+                    TOOL_BASH
+                        | TOOL_READ_FILE
+                        | TOOL_PLAN_READ_NOTE
+                        | TOOL_EDIT_FILE
+                        | TOOL_WRITE_FILE
+                        | TOOL_PLAN_EDIT_NOTE
+                        | TOOL_PLAN_WRITE_NOTE
+                ) && raw_res.chars().count()
+                    > LARGE_TOOL_OUTPUT_CHAR_LIMIT
+                {
+                    detect_json_stdout(&raw_res, "")
+                        .filter(|output| output.was_minified)
+                        .map(|output| output.compact_content)
+                } else {
+                    None
+                };
+                let res_for_limit = json_compacted_res.as_deref().unwrap_or(&raw_res);
+
                 if raw_res == "[]" || raw_res == "{}" || raw_res.is_empty() {
                     let empty_hint = match tool_name {
                         TOOL_WEB_SEARCH => "No results. Try narrower keywords; use Chinese for China-centric topics.",
@@ -274,7 +303,7 @@ impl ObservationReinforcer {
                     ReinforcedResult {
                         content: format!(
                             "<truncated_content path=\"{}\" next_offset=\"0\" file_size_bytes=\"{}\">\n{}\n</truncated_content>\n{}",
-                            file_path, file_size, preview.content, reminder,
+                            file_path, file_size, preview, reminder,
                         ),
                         llm_content,
                         title,
@@ -293,22 +322,28 @@ impl ObservationReinforcer {
                         approval_status: None,
                         observation_kind: None,
                     }
-                } else if tool_name == TOOL_WEB_FETCH
-                    && raw_res.chars().count() > LARGE_TOOL_OUTPUT_CHAR_LIMIT
+                } else if !matches!(
+                    tool_name,
+                    TOOL_READ_FILE
+                        | TOOL_PLAN_READ_NOTE
+                        | TOOL_EDIT_FILE
+                        | TOOL_WRITE_FILE
+                        | TOOL_PLAN_EDIT_NOTE
+                        | TOOL_PLAN_WRITE_NOTE
+                ) && res_for_limit.chars().count() > LARGE_TOOL_OUTPUT_CHAR_LIMIT
                 {
-                    if let Ok(persisted) = persist_tool_output(&raw_res) {
-                        let preview = line_based_preview(&raw_res, LARGE_TOOL_OUTPUT_CHAR_LIMIT);
-                        ReinforcedResult {
+                    let preview =
+                        truncate_text_for_preview(res_for_limit, LARGE_TOOL_OUTPUT_CHAR_LIMIT);
+                    match persist_overflow(&raw_res) {
+                        Ok(persisted) => ReinforcedResult {
                             content: format!(
-                                "<truncated_content path=\"{}\" next_offset=\"{}\" file_size_bytes=\"{}\">\n{}\n</truncated_content>\n<SYSTEM_REMINDER>web_fetch content exceeded {} chars, so the full response was saved to '{}'. File size: {} bytes. Continue with read_file using offset={} to read the remaining content. If you need to find specific facts quickly, use grep on this file path before reading more. Treat the saved file as the source of truth for the remainder instead of retrying the same URL.</SYSTEM_REMINDER>",
+                                "<truncated_content path=\"{}\" next_offset=\"0\" file_size_bytes=\"{}\">\n{}\n</truncated_content>\n<SYSTEM_REMINDER>Output exceeded {} chars after JSON compaction when applicable, so the complete original output was saved to '{}'. File size: {} bytes. Use read_file with offset=0 or grep on this file path to inspect the omitted content.</SYSTEM_REMINDER>",
                                 persisted.path,
-                                preview.next_offset,
                                 persisted.file_size_bytes,
-                                preview.content,
+                                preview,
                                 LARGE_TOOL_OUTPUT_CHAR_LIMIT,
                                 persisted.path,
                                 persisted.file_size_bytes,
-                                preview.next_offset,
                             ),
                             llm_content: llm_content_override.clone(),
                             title,
@@ -318,57 +353,28 @@ impl ObservationReinforcer {
                             display_type: display_type.to_string(),
                             approval_status: None,
                             observation_kind: None,
+                        },
+                        Err(error) => {
+                            log::warn!("Failed to persist complete tool output: {}", error);
+                            ReinforcedResult {
+                                content: format!(
+                                    "<truncated_content>\n{}\n</truncated_content>\n<SYSTEM_REMINDER>Output truncated at {} chars after JSON compaction when applicable. Failed to persist the complete original output, so narrow the next query or request a smaller range.</SYSTEM_REMINDER>",
+                                    preview, LARGE_TOOL_OUTPUT_CHAR_LIMIT,
+                                ),
+                                llm_content: llm_content_override.clone(),
+                                title,
+                                summary: format!("{} (Truncated)", summary),
+                                is_error: false,
+                                error_type: None,
+                                display_type: display_type.to_string(),
+                                approval_status: None,
+                                observation_kind: None,
+                            }
                         }
-                    } else {
-                        let truncated =
-                            truncate_text_for_preview(&raw_res, LARGE_TOOL_OUTPUT_CHAR_LIMIT);
-                        ReinforcedResult {
-                            content: format!(
-                                "<truncated_content>\n{}\n</truncated_content>\n<SYSTEM_REMINDER>web_fetch content exceeded {} chars. Failed to persist the full response to a temp file, so only the leading preview is available in this observation. Narrow the target URL or fetch another source if more content is required.</SYSTEM_REMINDER>",
-                                truncated,
-                                LARGE_TOOL_OUTPUT_CHAR_LIMIT,
-                            ),
-                            llm_content: llm_content_override.clone(),
-                            title,
-                            summary: format!("{} (Truncated)", summary),
-                            is_error: false,
-                            error_type: None,
-                            display_type: display_type.to_string(),
-                            approval_status: None,
-                            observation_kind: None,
-                        }
-                    }
-                } else if !matches!(
-                    tool_name,
-                    TOOL_READ_FILE
-                        | TOOL_PLAN_READ_NOTE
-                        | TOOL_EDIT_FILE
-                        | TOOL_WRITE_FILE
-                        | TOOL_PLAN_EDIT_NOTE
-                        | TOOL_PLAN_WRITE_NOTE
-                ) && raw_res.len() > 20000
-                {
-                    let truncated = match raw_res.char_indices().nth(20000) {
-                        Some((idx, _)) => &raw_res[..idx],
-                        None => &raw_res,
-                    };
-                    ReinforcedResult {
-                        content: format!(
-                            "<truncated_content>\n{}\n</truncated_content>\n<SYSTEM_REMINDER>Output truncated at 20000 chars. Narrow with grep/glob or smaller reads.</SYSTEM_REMINDER>",
-                            truncated
-                        ),
-                        llm_content: llm_content_override.clone(),
-                        title,
-                        summary: format!("{} (Truncated)", summary),
-                        is_error: false,
-                        error_type: None,
-                        display_type: display_type.to_string(),
-                        approval_status: None,
-                        observation_kind: None,
                     }
                 } else {
                     ReinforcedResult {
-                        content: raw_res,
+                        content: res_for_limit.to_string(),
                         llm_content: llm_content_override,
                         title,
                         summary,
@@ -786,7 +792,94 @@ mod tests {
     }
 
     #[test]
-    fn reinforce_web_fetch_persists_overflow_and_guides_follow_up_reads() {
+    fn reinforce_other_tool_compacts_json_before_truncation() {
+        let value = json!({ "items": vec![0; 4_000] });
+        let pretty_content = serde_json::to_string_pretty(&value).unwrap();
+        let compact_content = serde_json::to_string(&value).unwrap();
+        assert!(pretty_content.chars().count() > LARGE_TOOL_OUTPUT_CHAR_LIMIT);
+        assert!(compact_content.chars().count() < LARGE_TOOL_OUTPUT_CHAR_LIMIT);
+        let tool_call = json!({
+            "function": {
+                "name": "custom_tool",
+                "arguments": {}
+            }
+        });
+
+        let reinforced = ObservationReinforcer::reinforce_with_context(
+            &tool_call,
+            &Ok(json!({ "content": pretty_content })),
+            None,
+            None,
+        );
+
+        assert_eq!(reinforced.content, compact_content);
+        assert!(!reinforced.content.contains("<truncated_content"));
+        assert!(!reinforced.summary.contains("Truncated"));
+    }
+
+    #[test]
+    fn reinforce_other_tool_persists_original_when_output_is_truncated() {
+        let raw_content = "x".repeat(LARGE_TOOL_OUTPUT_CHAR_LIMIT + 1_000);
+        let tool_call = json!({
+            "function": {
+                "name": "custom_tool",
+                "arguments": {}
+            }
+        });
+
+        let reinforced = ObservationReinforcer::reinforce_with_context(
+            &tool_call,
+            &Ok(json!({ "content": raw_content.clone() })),
+            None,
+            None,
+        );
+
+        assert!(reinforced
+            .content
+            .contains("<truncated_content path=\"/tmp/"));
+        assert!(reinforced
+            .content
+            .contains("complete original output was saved"));
+        assert!(reinforced.summary.contains("Persisted overflow"));
+
+        let path = persisted_path(&reinforced.content);
+        let physical_path = resolve_ai_temp_path(Path::new(&path));
+        assert_eq!(fs::read_to_string(&physical_path).unwrap(), raw_content);
+        fs::remove_file(physical_path).unwrap();
+    }
+
+    #[test]
+    fn reinforce_other_tool_previews_compacted_json_and_persists_pretty_original() {
+        let value = json!({ "payload": "x".repeat(LARGE_TOOL_OUTPUT_CHAR_LIMIT + 1_000) });
+        let pretty_content = serde_json::to_string_pretty(&value).unwrap();
+        let tool_call = json!({
+            "function": {
+                "name": "custom_tool",
+                "arguments": {}
+            }
+        });
+
+        let reinforced = ObservationReinforcer::reinforce_with_context(
+            &tool_call,
+            &Ok(json!({ "content": pretty_content.clone() })),
+            None,
+            None,
+        );
+
+        assert!(reinforced
+            .content
+            .contains("<truncated_content path=\"/tmp/"));
+        assert!(reinforced.content.contains("{\"payload\":\""));
+        assert!(!reinforced.content.contains("{\n  \"payload\""));
+
+        let path = persisted_path(&reinforced.content);
+        let physical_path = resolve_ai_temp_path(Path::new(&path));
+        assert_eq!(fs::read_to_string(&physical_path).unwrap(), pretty_content);
+        fs::remove_file(physical_path).unwrap();
+    }
+
+    #[test]
+    fn reinforce_web_fetch_uses_shared_overflow_handling() {
         let line = "abcdefghij".repeat(100);
         let raw_content = (0..25)
             .map(|_| line.as_str())
@@ -806,42 +899,56 @@ mod tests {
             None,
         );
 
-        assert!(reinforced.content.contains("<truncated_content path=\""));
-        assert!(reinforced.content.contains("path=\"/tmp/"));
-        assert!(reinforced.content.contains("file_size_bytes=\""));
-        assert!(reinforced.content.contains("next_offset=\"19\""));
         assert!(reinforced
             .content
-            .contains("Continue with read_file using offset=19"));
-        assert!(reinforced.content.contains("File size:"));
+            .contains("<truncated_content path=\"/tmp/"));
+        assert!(reinforced.content.contains("next_offset=\"0\""));
+        assert!(reinforced
+            .content
+            .contains("complete original output was saved"));
+        assert!(reinforced
+            .content
+            .contains("Use read_file with offset=0 or grep"));
         assert!(reinforced.summary.contains("Persisted overflow"));
 
-        remove_persisted_output(&reinforced.content);
+        let path = persisted_path(&reinforced.content);
+        let physical_path = resolve_ai_temp_path(Path::new(&path));
+        assert_eq!(fs::read_to_string(&physical_path).unwrap(), raw_content);
+        fs::remove_file(physical_path).unwrap();
     }
 
     #[test]
-    fn reinforce_web_fetch_uses_zero_offset_for_single_oversized_line() {
-        let raw_content = "x".repeat(25_000);
+    fn reinforce_web_fetch_uses_shared_persistence_failure_fallback() {
+        let raw_content = format!("{}SECRET_TAIL", "x".repeat(LARGE_TOOL_OUTPUT_CHAR_LIMIT));
         let tool_call = json!({
             "function": {
                 "name": TOOL_WEB_FETCH,
-                "arguments": "{\"url\":\"https://raw.githubusercontent.com/waditu-tushare/skills/refs/heads/master/tushare/references/%E6%95%B0%E6%8D%AE%E6%8E%A5%E5%8F%A3.md\"}"
+                "arguments": {"url":"https://example.com/large.txt"}
             }
         });
 
-        let reinforced = ObservationReinforcer::reinforce_with_context(
+        let reinforced = ObservationReinforcer::reinforce_with_context_and_persist(
             &tool_call,
             &Ok(json!({ "content": raw_content })),
             None,
             None,
+            |_| Err(std::io::Error::other("simulated persistence failure")),
         );
 
-        assert!(reinforced.content.contains("next_offset=\"0\""));
+        let preview = reinforced
+            .content
+            .strip_prefix("<truncated_content>\n")
+            .and_then(|content| content.split_once("\n</truncated_content>"))
+            .map(|(preview, _)| preview)
+            .expect("truncated preview missing");
+        assert_eq!(preview.chars().count(), LARGE_TOOL_OUTPUT_CHAR_LIMIT);
+        assert!(!reinforced.content.contains("SECRET_TAIL"));
+        assert!(!reinforced.content.contains("path=\""));
+        assert!(!reinforced.content.contains("next_offset=\""));
         assert!(reinforced
             .content
-            .contains("Continue with read_file using offset=0"));
-
-        remove_persisted_output(&reinforced.content);
+            .contains("Failed to persist the complete original output"));
+        assert!(reinforced.summary.contains("Truncated"));
     }
 
     #[test]
