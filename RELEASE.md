@@ -2,6 +2,41 @@
 
 # Release Notes
 
+## [2.0.9]
+
+### 🚀 New Features
+
+- **More controlled Workflow tools and context**:
+  - MCP servers can now expose selected tools to Workflow individually, with authorization requested only when a tool actually needs access.
+  - Workflow supports file references in prompts and offers clearer choices when an agent needs to create files.
+  - Added a Skills entry to the Workflow input menu for quicker access to installed capabilities.
+  - Completion reports can now include an explicit summary, and todo snapshots from planning remain separate from execution todos.
+- **Workflow navigation and tool results**:
+  - Added a compact sidebar rail to give Workflow conversations more usable space while keeping navigation accessible.
+  - Large tool output is preserved safely, while Shell output is reduced more intelligently for Git, tests, builds, Rust/Go, JSON, logs, and compound commands.
+- **Model API-key protection**:
+  - Model API keys are protected in user key files and can be unlocked when required, strengthening local credential protection.
+
+### 🪄 Improvements
+
+- **Workflow reliability and clarity**:
+  - Improved completion-report rendering, tool status localization, approval details, and the display of tools waiting for execution.
+  - Refined Workflow recovery, queue and backup restoration, message navigation, task-window folding, continuation deletion, and terminal/manual-clear state reconciliation.
+  - Hardened approved-plan transitions, approval recovery, structured frontend tool states, inherited agent configuration, and concurrent sub-agent execution.
+- **CCProxy protocol compatibility and diagnostics**:
+  - Improved OpenAI Responses API handling, including request and response conversion across supported backends.
+  - Proxy errors are now converted into the correct response shape for OpenAI, Claude, Gemini, and Ollama clients, with clearer backend transport error reporting.
+
+### 🐞 Bug Fixes
+
+- **Workflow and tool-output correctness**:
+  - Fixed incomplete preservation of tool output in Workflow context and restored correct output display after Shell-result reduction.
+  - Fixed sidebar file-path references, approval UI contracts, runtime observation recovery, and Workflow execution/replay edge cases.
+- **Workflow data integrity**:
+  - Prevented a potential store write-lock deadlock when sub-agents run concurrently and improved cleanup of deleted Workflows.
+
+---
+
 ## [2.0.8]
 
 ### 🐞 Bug Fixes
