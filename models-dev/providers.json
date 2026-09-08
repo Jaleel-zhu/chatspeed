@@ -613,7 +613,7 @@
       "documentationUrl": "https://fireworks.ai/docs/",
       "id": "fireworks-ai",
       "logo": "https://models.dev/logos/fireworks-ai.svg",
-      "modelCount": 20,
+      "modelCount": 21,
       "name": "Fireworks AI",
       "protocol": "openai",
       "responses": false
@@ -663,7 +663,7 @@
       "documentationUrl": "https://docs.gitlab.com/user/duo_agent_platform/",
       "id": "gitlab",
       "logo": "https://models.dev/logos/gitlab.svg",
-      "modelCount": 24,
+      "modelCount": 25,
       "name": "GitLab Duo",
       "responses": false
     },
@@ -901,7 +901,7 @@
       "documentationUrl": "https://kilo.ai",
       "id": "kilo",
       "logo": "https://models.dev/logos/kilo.svg",
-      "modelCount": 369,
+      "modelCount": 367,
       "name": "Kilo Gateway",
       "protocol": "openai",
       "responses": false
@@ -1235,7 +1235,7 @@
       "documentationUrl": "https://docs.nano-gpt.com",
       "id": "nano-gpt",
       "logo": "https://models.dev/logos/nano-gpt.svg",
-      "modelCount": 592,
+      "modelCount": 593,
       "name": "NanoGPT",
       "protocol": "openai",
       "responses": false
@@ -1400,7 +1400,7 @@
       "documentationUrl": "https://openrouter.ai/models",
       "id": "openrouter",
       "logo": "https://models.dev/logos/openrouter.svg",
-      "modelCount": 360,
+      "modelCount": 358,
       "name": "OpenRouter",
       "protocol": "openai",
       "responses": false
@@ -1502,7 +1502,7 @@
       "documentationUrl": "https://docs.privatemode.ai/api/overview",
       "id": "privatemode-ai",
       "logo": "https://models.dev/logos/privatemode-ai.svg",
-      "modelCount": 7,
+      "modelCount": 9,
       "name": "Privatemode AI",
       "protocol": "openai",
       "responses": false
@@ -1978,7 +1978,7 @@
       "documentationUrl": "https://docs.vivgrid.com/models",
       "id": "vivgrid",
       "logo": "https://models.dev/logos/vivgrid.svg",
-      "modelCount": 23,
+      "modelCount": 27,
       "name": "Vivgrid",
       "protocol": "openai",
       "responses": false
@@ -2177,9 +2177,9 @@
     }
   ],
   "source": {
-    "catalogSha256": "eaa0f629fbcd3326c4ef61faeebe7bb3a033bad83ad2748b575b85b2b4a35df1",
-    "generatedAt": "2026-09-07T09:08:57Z",
+    "catalogSha256": "16aed67c45c1b6a74362917f5dd7602f97a933f5ff8dda68c1a692d52451362a",
+    "generatedAt": "2026-09-08T08:54:26Z",
     "repository": "https://github.com/anomalyco/models.dev",
-    "revision": "872d94d546231e442ecb5b353acda85ce88aeabd"
+    "revision": "2c88ba794887e1bb186da26f4ff44722ce98677d"
   }
 }
