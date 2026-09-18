@@ -99,6 +99,16 @@
       "responses": false
     },
     {
+      "api": "https://microquickjs.com/v1",
+      "documentationUrl": "https://ainetcafe.com/k3/guides/",
+      "id": "ainetcafe",
+      "logo": "https://models.dev/logos/ainetcafe.svg",
+      "modelCount": 1,
+      "name": "ainetcafe",
+      "protocol": "openai",
+      "responses": false
+    },
+    {
       "api": "https://api.aixy-gateway.com/v1",
       "documentationUrl": "https://docs.aixy-gateway.com/integrations/overview",
       "id": "aixy",
@@ -164,7 +174,7 @@
       "documentationUrl": "https://www.alibabacloud.com/help/en/model-studio/token-plan-overview",
       "id": "alibaba-token-plan",
       "logo": "https://models.dev/logos/alibaba-token-plan.svg",
-      "modelCount": 27,
+      "modelCount": 28,
       "name": "Alibaba Token Plan",
       "protocol": "openai",
       "responses": false
@@ -174,7 +184,7 @@
       "documentationUrl": "https://www.alibabacloud.com/help/zh/model-studio/token-plan-overview",
       "id": "alibaba-token-plan-cn",
       "logo": "https://models.dev/logos/alibaba-token-plan-cn.svg",
-      "modelCount": 27,
+      "modelCount": 28,
       "name": "Alibaba Token Plan (China)",
       "protocol": "openai",
       "responses": false
@@ -275,7 +285,7 @@
       "documentationUrl": "https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models",
       "id": "azure",
       "logo": "https://models.dev/logos/azure.svg",
-      "modelCount": 87,
+      "modelCount": 89,
       "name": "Azure",
       "responses": false
     },
@@ -412,7 +422,7 @@
       "documentationUrl": "https://developers.cloudflare.com/ai-gateway/",
       "id": "cloudflare-ai-gateway",
       "logo": "https://models.dev/logos/cloudflare-ai-gateway.svg",
-      "modelCount": 44,
+      "modelCount": 47,
       "name": "Cloudflare AI Gateway",
       "responses": false
     },
@@ -582,7 +592,7 @@
       "documentationUrl": "https://docs.edenai.co",
       "id": "edenai",
       "logo": "https://models.dev/logos/edenai.svg",
-      "modelCount": 283,
+      "modelCount": 279,
       "name": "Eden AI",
       "protocol": "openai",
       "responses": false
@@ -592,7 +602,7 @@
       "documentationUrl": "https://docs.empiriolabs.ai",
       "id": "empiriolabs",
       "logo": "https://models.dev/logos/empiriolabs.svg",
-      "modelCount": 61,
+      "modelCount": 62,
       "name": "EmpirioLabs AI",
       "protocol": "openai",
       "responses": false
@@ -931,7 +941,7 @@
       "documentationUrl": "https://kilo.ai",
       "id": "kilo",
       "logo": "https://models.dev/logos/kilo.svg",
-      "modelCount": 377,
+      "modelCount": 378,
       "name": "Kilo Gateway",
       "protocol": "openai",
       "responses": false
@@ -1163,7 +1173,7 @@
       "documentationUrl": "https://docs.mistral.ai/getting-started/models/",
       "id": "mistral",
       "logo": "https://models.dev/logos/mistral.svg",
-      "modelCount": 34,
+      "modelCount": 35,
       "name": "Mistral",
       "protocol": "openai",
       "responses": false
@@ -1275,7 +1285,7 @@
       "documentationUrl": "https://docs.nano-gpt.com",
       "id": "nano-gpt",
       "logo": "https://models.dev/logos/nano-gpt.svg",
-      "modelCount": 574,
+      "modelCount": 571,
       "name": "NanoGPT",
       "protocol": "openai",
       "responses": false
@@ -1376,7 +1386,7 @@
       "documentationUrl": "https://ofox.ai/docs",
       "id": "ofox",
       "logo": "https://models.dev/logos/ofox.svg",
-      "modelCount": 143,
+      "modelCount": 144,
       "name": "Ofox",
       "protocol": "openai",
       "responses": false
@@ -1429,7 +1439,7 @@
       "documentationUrl": "https://opencode.ai/docs/zen",
       "id": "opencode-go",
       "logo": "https://models.dev/logos/opencode-go.svg",
-      "modelCount": 37,
+      "modelCount": 36,
       "name": "OpenCode Go",
       "protocol": "openai",
       "responses": false
@@ -1450,7 +1460,7 @@
       "documentationUrl": "https://openrouter.ai/models",
       "id": "openrouter",
       "logo": "https://models.dev/logos/openrouter.svg",
-      "modelCount": 369,
+      "modelCount": 370,
       "name": "OpenRouter",
       "protocol": "openai",
       "responses": false
@@ -1678,7 +1688,7 @@
       "documentationUrl": "https://www.scnet.cn/ac/openapi/doc/2.0/moduleapi/plans/token-plan.html",
       "id": "scnet-token-plan",
       "logo": "https://models.dev/logos/scnet-token-plan.svg",
-      "modelCount": 18,
+      "modelCount": 19,
       "name": "SCNet Token Plan",
       "protocol": "openai",
       "responses": false
@@ -1903,7 +1913,7 @@
       "documentationUrl": "https://docs.tinfoil.sh",
       "id": "tinfoil",
       "logo": "https://models.dev/logos/tinfoil.svg",
-      "modelCount": 8,
+      "modelCount": 9,
       "name": "Tinfoil",
       "protocol": "openai",
       "responses": false
@@ -2011,7 +2021,7 @@
       "documentationUrl": "https://docs.venice.ai",
       "id": "venice",
       "logo": "https://models.dev/logos/venice.svg",
-      "modelCount": 106,
+      "modelCount": 105,
       "name": "Venice AI",
       "responses": false
     },
@@ -2019,7 +2029,7 @@
       "documentationUrl": "https://github.com/vercel/ai/tree/5eb85cc45a259553501f535b8ac79a77d0e79223/packages/gateway",
       "id": "vercel",
       "logo": "https://models.dev/logos/vercel.svg",
-      "modelCount": 373,
+      "modelCount": 375,
       "name": "Vercel AI Gateway",
       "responses": false
     },
@@ -2119,7 +2129,7 @@
       "documentationUrl": "https://docs.x.ai/docs/models",
       "id": "xai",
       "logo": "https://models.dev/logos/xai.svg",
-      "modelCount": 12,
+      "modelCount": 10,
       "name": "xAI",
       "protocol": "openai",
       "responses": false
@@ -2241,16 +2251,16 @@
       "documentationUrl": "https://docs.bigmodel.cn/cn/coding-plan/overview",
       "id": "zhipuai-coding-plan",
       "logo": "https://models.dev/logos/zhipuai-coding-plan.svg",
-      "modelCount": 10,
+      "modelCount": 4,
       "name": "Zhipu AI Coding Plan",
       "protocol": "openai",
       "responses": false
     }
   ],
   "source": {
-    "catalogSha256": "5361d0599459da9b3b202f4916cc13b2d60a53e98f1f2a17f9d83e2826edfe4d",
-    "generatedAt": "2026-09-17T10:17:30Z",
+    "catalogSha256": "b9f409a6194631b5158601e4b2709ae9d1d6e640d81e6423502ceb3afc9d22d2",
+    "generatedAt": "2026-09-18T09:52:10Z",
     "repository": "https://github.com/anomalyco/models.dev",
-    "revision": "f70ae6b4fd14270feca45dc7333219f5d0121bd6"
+    "revision": "1392fd983795c3d54a4c81594e7afbc3c185bb58"
   }
 }
