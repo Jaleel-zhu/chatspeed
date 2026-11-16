@@ -693,7 +693,7 @@
       "documentationUrl": "https://www.crossmodel.ai/docs",
       "id": "crossmodel",
       "logo": "https://models.dev/logos/crossmodel.svg",
-      "modelCount": 73,
+      "modelCount": 74,
       "name": "CrossModel",
       "protocol": "openai",
       "responses": false
@@ -832,7 +832,7 @@
       "documentationUrl": "https://docs.empiriolabs.ai",
       "id": "empiriolabs",
       "logo": "https://models.dev/logos/empiriolabs.svg",
-      "modelCount": 64,
+      "modelCount": 65,
       "name": "EmpirioLabs AI",
       "protocol": "openai",
       "responses": false
@@ -1391,7 +1391,7 @@
       "documentationUrl": "https://kilo.ai",
       "id": "kilo",
       "logo": "https://models.dev/logos/kilo.svg",
-      "modelCount": 465,
+      "modelCount": 463,
       "name": "Kilo Gateway",
       "protocol": "openai",
       "responses": false
@@ -1511,7 +1511,7 @@
       "documentationUrl": "https://llmgateway.io/docs",
       "id": "llmgateway",
       "logo": "https://models.dev/logos/llmgateway.svg",
-      "modelCount": 202,
+      "modelCount": 203,
       "name": "DevPass (LLM Gateway)",
       "protocol": "openai",
       "responses": false
@@ -1521,7 +1521,7 @@
       "documentationUrl": "https://llmgateway.io/docs",
       "id": "llmgateway-providers",
       "logo": "https://models.dev/logos/llmgateway-providers.svg",
-      "modelCount": 467,
+      "modelCount": 468,
       "name": "LLM Gateway",
       "protocol": "openai",
       "responses": false
@@ -1875,7 +1875,7 @@
       "documentationUrl": "https://docs.nano-gpt.com",
       "id": "nano-gpt",
       "logo": "https://models.dev/logos/nano-gpt.svg",
-      "modelCount": 617,
+      "modelCount": 621,
       "name": "NanoGPT",
       "protocol": "openai",
       "responses": false
@@ -2059,7 +2059,7 @@
       "documentationUrl": "https://opencode.ai/v2/docs/console/models/",
       "id": "opencode",
       "logo": "https://models.dev/logos/opencode.svg",
-      "modelCount": 139,
+      "modelCount": 140,
       "name": "OpenCode",
       "protocol": "openai",
       "responses": false
@@ -2069,7 +2069,7 @@
       "documentationUrl": "https://opencode.ai/v2/docs/console/go/",
       "id": "opencode-go",
       "logo": "https://models.dev/logos/opencode-go.svg",
-      "modelCount": 40,
+      "modelCount": 42,
       "name": "OpenCode Go",
       "protocol": "openai",
       "responses": false
@@ -2090,7 +2090,7 @@
       "documentationUrl": "https://openrouter.ai/models",
       "id": "openrouter",
       "logo": "https://models.dev/logos/openrouter.svg",
-      "modelCount": 378,
+      "modelCount": 377,
       "name": "OpenRouter",
       "protocol": "openai",
       "responses": false
@@ -2994,7 +2994,7 @@
       "documentationUrl": "https://docs.venice.ai",
       "id": "venice",
       "logo": "https://models.dev/logos/venice.svg",
-      "modelCount": 128,
+      "modelCount": 129,
       "name": "Venice AI",
       "responses": false
     },
@@ -3002,7 +3002,7 @@
       "documentationUrl": "https://github.com/vercel/ai/tree/5eb85cc45a259553501f535b8ac79a77d0e79223/packages/gateway",
       "id": "vercel",
       "logo": "https://models.dev/logos/vercel.svg",
-      "modelCount": 416,
+      "modelCount": 417,
       "name": "Vercel AI Gateway",
       "responses": false
     },
@@ -3291,9 +3291,9 @@
     }
   ],
   "source": {
-    "catalogSha256": "a340b4d6d63d60db013b2b8318b9c7d277fcb7962a2a70c9d1546c285fa7a322",
-    "generatedAt": "2026-11-15T10:51:11Z",
+    "catalogSha256": "8b6a951d8a11ad0a8839cf37320657e3c033108615f79668a68a6ce2a7080e30",
+    "generatedAt": "2026-11-16T11:14:50Z",
     "repository": "https://github.com/anomalyco/models.dev",
-    "revision": "319c6e52364db63d46d5f83224e692246afd404d"
+    "revision": "30597d29ec8393ea3aa76902962f74dae8ea8a34"
   }
 }
