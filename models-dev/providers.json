@@ -276,7 +276,7 @@
       "documentationUrl": "https://docs.aws.amazon.com/bedrock/latest/userguide/models-supported.html",
       "id": "amazon-bedrock",
       "logo": "https://models.dev/logos/amazon-bedrock.svg",
-      "modelCount": 208,
+      "modelCount": 214,
       "name": "Amazon Bedrock",
       "responses": true
     },
@@ -395,7 +395,7 @@
       "documentationUrl": "https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models",
       "id": "azure",
       "logo": "https://models.dev/logos/azure.svg",
-      "modelCount": 97,
+      "modelCount": 99,
       "name": "Azure",
       "responses": false
     },
@@ -403,7 +403,7 @@
       "documentationUrl": "https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models",
       "id": "azure-cognitive-services",
       "logo": "https://models.dev/logos/azure-cognitive-services.svg",
-      "modelCount": 97,
+      "modelCount": 99,
       "name": "Azure Cognitive Services",
       "responses": false
     },
@@ -622,7 +622,7 @@
       "documentationUrl": "https://developers.cloudflare.com/ai-gateway/",
       "id": "cloudflare-ai-gateway",
       "logo": "https://models.dev/logos/cloudflare-ai-gateway.svg",
-      "modelCount": 81,
+      "modelCount": 83,
       "name": "Cloudflare AI Gateway",
       "responses": false
     },
@@ -632,7 +632,7 @@
       "documentationUrl": "https://developers.cloudflare.com/workers-ai/models/",
       "id": "cloudflare-workers-ai",
       "logo": "https://models.dev/logos/cloudflare-workers-ai.svg",
-      "modelCount": 29,
+      "modelCount": 30,
       "name": "Cloudflare Workers AI",
       "protocol": "openai",
       "responses": false
@@ -752,7 +752,7 @@
       "documentationUrl": "https://docs.digitalocean.com/products/gradient-ai-platform/details/models/",
       "id": "digitalocean",
       "logo": "https://models.dev/logos/digitalocean.svg",
-      "modelCount": 86,
+      "modelCount": 88,
       "name": "DigitalOcean",
       "protocol": "openai",
       "responses": false
@@ -822,7 +822,7 @@
       "documentationUrl": "https://docs.edenai.co",
       "id": "edenai",
       "logo": "https://models.dev/logos/edenai.svg",
-      "modelCount": 395,
+      "modelCount": 399,
       "name": "Eden AI",
       "protocol": "openai",
       "responses": false
@@ -974,7 +974,7 @@
       "documentationUrl": "https://docs.github.com/en/copilot",
       "id": "github-copilot",
       "logo": "https://models.dev/logos/github-copilot.svg",
-      "modelCount": 39,
+      "modelCount": 44,
       "name": "GitHub Copilot",
       "protocol": "openai",
       "responses": false
@@ -1003,7 +1003,7 @@
       "documentationUrl": "https://ai.google.dev/gemini-api/docs/models",
       "id": "google",
       "logo": "https://models.dev/logos/google.svg",
-      "modelCount": 38,
+      "modelCount": 39,
       "name": "Google",
       "protocol": "gemini",
       "responses": false
@@ -1012,7 +1012,7 @@
       "documentationUrl": "https://cloud.google.com/vertex-ai/generative-ai/docs/models",
       "id": "google-vertex",
       "logo": "https://models.dev/logos/google-vertex.svg",
-      "modelCount": 64,
+      "modelCount": 65,
       "name": "Vertex",
       "responses": false
     },
@@ -1131,7 +1131,7 @@
       "documentationUrl": "https://huggingface.co/docs/inference-providers",
       "id": "huggingface",
       "logo": "https://models.dev/logos/huggingface.svg",
-      "modelCount": 86,
+      "modelCount": 92,
       "name": "Hugging Face",
       "protocol": "huggingface",
       "responses": false
@@ -1391,7 +1391,7 @@
       "documentationUrl": "https://kilo.ai",
       "id": "kilo",
       "logo": "https://models.dev/logos/kilo.svg",
-      "modelCount": 465,
+      "modelCount": 468,
       "name": "Kilo Gateway",
       "protocol": "openai",
       "responses": false
@@ -1511,7 +1511,7 @@
       "documentationUrl": "https://llmgateway.io/docs",
       "id": "llmgateway",
       "logo": "https://models.dev/logos/llmgateway.svg",
-      "modelCount": 215,
+      "modelCount": 216,
       "name": "DevPass (LLM Gateway)",
       "protocol": "openai",
       "responses": false
@@ -1521,7 +1521,7 @@
       "documentationUrl": "https://llmgateway.io/docs",
       "id": "llmgateway-providers",
       "logo": "https://models.dev/logos/llmgateway-providers.svg",
-      "modelCount": 501,
+      "modelCount": 503,
       "name": "LLM Gateway",
       "protocol": "openai",
       "responses": false
@@ -1875,7 +1875,7 @@
       "documentationUrl": "https://docs.nano-gpt.com",
       "id": "nano-gpt",
       "logo": "https://models.dev/logos/nano-gpt.svg",
-      "modelCount": 630,
+      "modelCount": 598,
       "name": "NanoGPT",
       "protocol": "openai",
       "responses": false
@@ -1885,7 +1885,7 @@
       "documentationUrl": "https://docs.near.ai/",
       "id": "nearai",
       "logo": "https://models.dev/logos/nearai.svg",
-      "modelCount": 60,
+      "modelCount": 59,
       "name": "NEAR AI Cloud",
       "protocol": "openai",
       "responses": false
@@ -1965,7 +1965,7 @@
       "documentationUrl": "https://novita.ai/docs/guides/introduction",
       "id": "novita-ai",
       "logo": "https://models.dev/logos/novita-ai.svg",
-      "modelCount": 94,
+      "modelCount": 97,
       "name": "Novita AI",
       "protocol": "openai",
       "responses": false
@@ -2016,7 +2016,7 @@
       "documentationUrl": "https://ofox.ai/docs",
       "id": "ofox",
       "logo": "https://models.dev/logos/ofox.svg",
-      "modelCount": 154,
+      "modelCount": 156,
       "name": "Ofox",
       "protocol": "openai",
       "responses": false
@@ -2059,7 +2059,7 @@
       "documentationUrl": "https://opencode.ai/v2/docs/console/models/",
       "id": "opencode",
       "logo": "https://models.dev/logos/opencode.svg",
-      "modelCount": 142,
+      "modelCount": 144,
       "name": "OpenCode",
       "protocol": "openai",
       "responses": false
@@ -2090,7 +2090,7 @@
       "documentationUrl": "https://openrouter.ai/models",
       "id": "openrouter",
       "logo": "https://models.dev/logos/openrouter.svg",
-      "modelCount": 382,
+      "modelCount": 383,
       "name": "OpenRouter",
       "protocol": "openai",
       "responses": false
@@ -2351,7 +2351,7 @@
       "documentationUrl": "https://requesty.ai/solution/llm-routing/models",
       "id": "requesty",
       "logo": "https://models.dev/logos/requesty.svg",
-      "modelCount": 175,
+      "modelCount": 179,
       "name": "Requesty",
       "protocol": "openai",
       "responses": false
@@ -2994,7 +2994,7 @@
       "documentationUrl": "https://docs.venice.ai",
       "id": "venice",
       "logo": "https://models.dev/logos/venice.svg",
-      "modelCount": 133,
+      "modelCount": 134,
       "name": "Venice AI",
       "responses": false
     },
@@ -3002,7 +3002,7 @@
       "documentationUrl": "https://github.com/vercel/ai/tree/5eb85cc45a259553501f535b8ac79a77d0e79223/packages/gateway",
       "id": "vercel",
       "logo": "https://models.dev/logos/vercel.svg",
-      "modelCount": 416,
+      "modelCount": 418,
       "name": "Vercel AI Gateway",
       "responses": false
     },
@@ -3032,7 +3032,7 @@
       "documentationUrl": "https://docs.vivgrid.com/models",
       "id": "vivgrid",
       "logo": "https://models.dev/logos/vivgrid.svg",
-      "modelCount": 38,
+      "modelCount": 42,
       "name": "Vivgrid",
       "protocol": "openai",
       "responses": false
@@ -3291,9 +3291,9 @@
     }
   ],
   "source": {
-    "catalogSha256": "24599f458db8148f2522ab781d40771bec0aa3656084cc8afeee93bc31a0a839",
-    "generatedAt": "2026-11-18T11:40:00Z",
+    "catalogSha256": "3d38e7e10acfb612384e61a5bdc825c53639634a9f8cdbaafb49c6d89b30a65f",
+    "generatedAt": "2026-11-19T11:37:39Z",
     "repository": "https://github.com/anomalyco/models.dev",
-    "revision": "7b22cc903b46d459e83ec6420d702426f34f813c"
+    "revision": "91f500b1a867befd9ebeae9fba82154590745daa"
   }
 }
